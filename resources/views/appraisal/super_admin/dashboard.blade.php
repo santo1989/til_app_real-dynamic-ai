@@ -1,0 +1,342 @@
+@extends('layouts.app')
+
+@section('content')
+    <div class="container-fluid">
+        <!-- Welcome Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card exec-hero">
+                    <div class="card-body">
+                        <h3 class="hero-title mb-0">
+                            <i class="fas fa-user-shield"></i> Super Admin Dashboard
+                        </h3>
+                        <p class="hero-subtitle mb-0 mt-2">Welcome back, {{ auth()->user()->name }}! You have full system
+                            access.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- IDP Summary -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card exec-stat-card border-info">
+                    <div class="card-body text-center">
+                        <i class="fas fa-graduation-cap stat-icon text-info mb-3"></i>
+                        <h4 class="stat-value mb-1">{{ $stats['total_idps'] ?? 0 }}</h4>
+                        <p class="stat-label mb-0">Total IDPs</p>
+                        <small class="text-info">Manage individual development plans</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="row mb-4">
+            <div class="col-6 col-md-3 mb-3">
+                <div class="card exec-stat-card border-primary">
+                    <div class="card-body text-center">
+                        <i class="fas fa-users stat-icon text-primary mb-3"></i>
+                        <h4 class="stat-value mb-1">{{ $stats['total_users'] }}</h4>
+                        <p class="stat-label mb-0">Total Users</p>
+                        <small class="text-success">{{ $stats['active_users'] }} Active</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 mb-3">
+                <div class="card exec-stat-card border-info">
+                    <div class="card-body text-center">
+                        <i class="fas fa-building stat-icon text-info mb-3"></i>
+                        <h4 class="stat-value mb-1">{{ $stats['total_departments'] }}</h4>
+                        <p class="stat-label mb-0">Departments</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 mb-3">
+                <div class="card exec-stat-card border-warning">
+                    <div class="card-body text-center">
+                        <i class="fas fa-bullseye stat-icon text-warning mb-3"></i>
+                        <h4 class="stat-value mb-1">{{ $stats['total_objectives'] }}</h4>
+                        <p class="stat-label mb-0">Total Objectives</p>
+                        <small class="text-warning">{{ $stats['pending_objectives'] }} Pending</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 mb-3">
+                <div class="card exec-stat-card border-success">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-line stat-icon text-success mb-3"></i>
+                        <h4 class="stat-value mb-1">{{ $stats['total_appraisals'] }}</h4>
+                        <p class="stat-label mb-0">Total Appraisals</p>
+                        <small class="text-success">{{ $stats['completed_appraisals'] }} Completed</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Quick Access -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card quick-links-panel">
+                    <div class="card-body d-flex flex-wrap gap-2">
+                        <a href="{{ route('users.index') }}" class="btn btn-sm btn-outline-primary">Users</a>
+                        <a href="{{ route('departments.index') }}" class="btn btn-sm btn-outline-info">Departments</a>
+                        <a href="{{ route('objectives.index') }}" class="btn btn-sm btn-outline-warning">Objectives</a>
+                        <a href="{{ route('appraisals.index') }}" class="btn btn-sm btn-outline-success">Appraisals</a>
+                        <a href="{{ route('idps.index') }}" class="btn btn-sm btn-outline-secondary">IDPs</a>
+                        <a href="{{ route('idp-development-objectives.index') }}"
+                            class="btn btn-sm btn-outline-secondary">IDP Master Pairs</a>
+                        <a href="{{ route('pips.index') }}" class="btn btn-sm btn-outline-danger">PIPs</a>
+                        <a href="{{ route('financial-years.index') }}" class="btn btn-sm btn-outline-warning">Financial
+                            Years</a>
+                        <a href="{{ route('audit-logs.index') }}" class="btn btn-sm btn-outline-dark">Audit Logs</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Three Column Layout -->
+        <div class="row">
+            <!-- Recent Users -->
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="fas fa-user-clock"></i> Recent Users</h6>
+                        <x-ui.button variant="light" href="{{ route('users.index') }}" class="btn-sm">View
+                            All</x-ui.button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            @forelse($recentUsers as $user)
+                                <div class="list-group-item">
+                                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ $user->name }}</h6>
+                                            <small class="text-muted">{{ $user->email }}</small>
+                                        </div>
+                                        <div class="d-flex align-items-center mt-2 mt-md-0">
+                                            <span class="badge bg-{{ $user->is_active ? 'success' : 'secondary' }} me-2">
+                                                {{ ucfirst($user->role) }}
+                                            </span>
+                                            <x-ui.button variant="light" href="{{ route('users.edit', $user) }}"
+                                                class="btn-sm">Edit</x-ui.button>
+                                            @can('impersonate', $user)
+                                                <form method="POST" action="{{ route('impersonate.start', $user) }}"
+                                                    class="ms-2 m-0 p-0 impersonate-form" data-user="{{ $user->name }}">
+                                                    @csrf
+                                                    <x-ui.button variant="primary" type="submit" class="btn-sm"
+                                                        title="Act as this user">Impersonate</x-ui.button>
+                                                </form>
+                                            @endcan
+                                        </div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="list-group-item text-center text-muted">
+                                    <i class="fas fa-inbox"></i> No users found
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Objectives -->
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="fas fa-bullseye"></i> Recent Objectives</h6>
+                        <x-ui.button variant="light" href="{{ route('objectives.index') }}" class="btn-sm">View
+                            All</x-ui.button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            @forelse($recentObjectives as $objective)
+                                <a href="{{ route('objectives.show', $objective) }}"
+                                    class="list-group-item list-group-item-action">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ Str::limit($objective->description, 30) }}</h6>
+                                            <small class="text-muted">{{ $objective->user->name ?? 'N/A' }}</small>
+                                        </div>
+                                        <span
+                                            class="badge bg-{{ $objective->status == 'set' ? 'success' : ($objective->status == 'draft' ? 'warning' : 'info') }}">
+                                            {{ ucfirst($objective->status) }}
+                                        </span>
+                                    </div>
+                                </a>
+                            @empty
+                                <div class="list-group-item text-center text-muted">
+                                    <i class="fas fa-inbox"></i> No objectives found
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Appraisals -->
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="fas fa-chart-line"></i> Recent Appraisals</h6>
+                        <x-ui.button variant="light" href="{{ route('appraisals.index') }}" class="btn-sm">View
+                            All</x-ui.button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            @forelse($recentAppraisals as $appraisal)
+                                <a href="{{ route('appraisals.show', $appraisal) }}"
+                                    class="list-group-item list-group-item-action">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ $appraisal->user->name ?? 'N/A' }}</h6>
+                                            <small
+                                                class="text-muted">{{ $appraisal->type ?? ($appraisal->appraisal_type ?? 'N/A') }}</small>
+                                        </div>
+                                        <span
+                                            class="badge bg-{{ $appraisal->status == 'completed' ? 'success' : 'info' }}">
+                                            {{ ucfirst($appraisal->status) }}
+                                        </span>
+                                    </div>
+                                </a>
+                            @empty
+                                <div class="list-group-item text-center text-muted">
+                                    <i class="fas fa-inbox"></i> No appraisals found
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Departments Overview -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-building"></i> Departments Overview</h5>
+                        <x-ui.button variant="light" href="{{ route('departments.index') }}" class="btn-sm">Manage
+                            Departments</x-ui.button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Department Name</th>
+                                        <th>Department Code</th>
+                                        <th>Total Employees</th>
+                                        <th>Department Head</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($departments as $department)
+                                        <tr>
+                                            <td>
+                                                <i class="fas fa-building text-info"></i>
+                                                <strong>{{ $department->name }}</strong>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ $department->code }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">{{ $department->users_count ?? 0 }}
+                                                    Employees</span>
+                                            </td>
+                                            <td>
+                                                @if ($department->head)
+                                                    {{ $department->head->name }}
+                                                @else
+                                                    <span class="text-muted">Not Assigned</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <x-ui.button variant="primary"
+                                                    href="{{ route('departments.edit', $department) }}" class="btn-sm">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </x-ui.button>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">
+                                                <i class="fas fa-inbox fa-2x mb-2"></i>
+                                                <p>No departments found. <a
+                                                        href="{{ route('departments.create') }}">Create one now</a></p>
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Information -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0"><i class="fas fa-info-circle"></i> System Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Performance Summary</h6>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check-circle text-success"></i> Active Users:
+                                        <strong>{{ $stats['active_users'] }}</strong>
+                                    </li>
+                                    <li><i class="fas fa-clock text-warning"></i> Pending Objectives:
+                                        <strong>{{ $stats['pending_objectives'] }}</strong>
+                                    </li>
+                                    <li><i class="fas fa-check-circle text-success"></i> Approved Objectives:
+                                        <strong>{{ $stats['approved_objectives'] }}</strong>
+                                    </li>
+                                    <li><i class="fas fa-hourglass-half text-info"></i> Pending Appraisals:
+                                        <strong>{{ $stats['pending_appraisals'] }}</strong>
+                                    </li>
+                                    <li><i class="fas fa-check-circle text-success"></i> Completed Appraisals:
+                                        <strong>{{ $stats['completed_appraisals'] }}</strong>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Quick Actions</h6>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
+                                        <i class="fas fa-print"></i> Print Dashboard
+                                    </button>
+                                    <a href="#" class="btn btn-outline-success btn-sm">
+                                        <i class="fas fa-file-excel"></i> Export to Excel
+                                    </a>
+                                    <a href="#" class="btn btn-outline-danger btn-sm">
+                                        <i class="fas fa-file-pdf"></i> Generate PDF Report
+                                    </a>
+                                    <a href="{{ route('idps.index') }}" class="btn btn-outline-info btn-sm">
+                                        <i class="fas fa-graduation-cap"></i> Manage IDPs
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .stat-icon {
+            font-size: 3rem;
+        }
+
+        @media (max-width: 576px) {
+            .stat-icon {
+                font-size: 1.6rem;
+            }
+        }
+    </style>
+@endsection

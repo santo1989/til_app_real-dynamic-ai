@@ -1,0 +1,274 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* PMS Professional Theme */
+:root {
+    --primary-color: #2A8760;
+    --primary-hover: #075432;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+    --dark-color: #212529;
+    --surface-color: #ffffff;
+    --surface-muted: #f4f8f6;
+    --border-color: #d8e5de;
+    --text-color: #1f2c28;
+}
+
+.exec-hero {
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 1rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+    color: #f8fffc;
+    box-shadow: 0 14px 34px rgba(7, 84, 50, 0.22);
+}
+
+.exec-hero .hero-title {
+    font-weight: 700;
+    letter-spacing: 0.2px;
+}
+
+.exec-hero .hero-subtitle {
+    opacity: 0.92;
+}
+
+.exec-stat-card {
+    border: 1px solid var(--border-color);
+    border-radius: 0.95rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f7fbf9 100%);
+    box-shadow: 0 8px 24px rgba(22, 54, 40, 0.08);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.exec-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(22, 54, 40, 0.14);
+}
+
+.exec-stat-card .stat-value {
+    font-size: clamp(1.35rem, 2vw, 1.95rem);
+    font-weight: 800;
+    color: var(--primary-hover);
+    line-height: 1.1;
+}
+
+.exec-stat-card .stat-label {
+    color: #5c726a;
+    font-weight: 600;
+}
+
+.quick-links-panel {
+    border: 1px solid var(--border-color);
+    border-radius: 0.9rem;
+    background: #fbfefd;
+}
+
+.quick-links-panel .btn {
+    border-radius: 0.65rem;
+}
+
+/* PMS Professional Theme */
+:root {
+    --primary-color: #2A8760;
+    --primary-hover: #075432;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+    --dark-color: #212529;
+    --surface-color: #ffffff;
+    --surface-muted: #f4f8f6;
+    --border-color: #d8e5de;
+    --text-color: #1f2c28;
+}
+
+body {
+    color: var(--text-color);
+    background:
+        radial-gradient(circle at 0% 0%, rgba(42, 135, 96, 0.14) 0, transparent 45%),
+        radial-gradient(circle at 100% 0%, rgba(7, 84, 50, 0.10) 0, transparent 40%),
+        linear-gradient(180deg, #f8fcfa 0%, #edf5f1 100%);
+    min-height: 100vh;
+}
+
+.navbar.bg-primary,
+.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+.navbar {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.navbar .nav-link,
+.navbar .navbar-brand {
+    color: #f5fffb !important;
+}
+
+.navbar .nav-link:hover,
+.navbar .nav-link:focus,
+.navbar .navbar-brand:hover,
+.navbar .navbar-brand:focus {
+    color: #ffffff !important;
+}
+
+.dropdown-menu {
+    border: 1px solid var(--border-color);
+    border-radius: 0.8rem;
+    box-shadow: 0 12px 28px rgba(14, 33, 24, 0.14);
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: rgba(42, 135, 96, 0.1);
+    color: var(--primary-hover);
+}
+
+.container>.card,
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: 0.95rem;
+    background: var(--surface-color);
+    box-shadow: 0 8px 26px rgba(14, 33, 24, 0.08);
+}
+
+.card .card-header {
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(90deg, rgba(42, 135, 96, 0.12), rgba(42, 135, 96, 0.03));
+}
+
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-striped-bg: #f5faf7;
+    --bs-table-border-color: var(--border-color);
+}
+
+.table thead th {
+    color: var(--primary-hover);
+    font-weight: 700;
+    background-color: #edf6f1;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.form-control,
+.form-select,
+textarea,
+input[type='text'],
+input[type='date'],
+input[type='number'],
+input[type='email'],
+input[type='password'] {
+    border: 1px solid #b9d2c6;
+    border-radius: 0.65rem;
+    background-color: #fbfefd;
+}
+
+.form-control:focus,
+.form-select:focus,
+textarea:focus,
+input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(42, 135, 96, 0.18);
+}
+
+.btn-primary,
+.btn-outline-primary:hover,
+.btn.btn-outline-primary:hover {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: #fff !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: var(--primary-hover) !important;
+    border-color: var(--primary-hover) !important;
+}
+
+.btn-outline-primary,
+.btn.btn-outline-primary {
+    color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+.btn-success {
+    background-color: var(--success-color) !important;
+    border-color: var(--success-color) !important;
+}
+
+.btn-danger {
+    background-color: var(--danger-color) !important;
+    border-color: var(--danger-color) !important;
+}
+
+.btn-warning {
+    background-color: var(--warning-color) !important;
+    border-color: var(--warning-color) !important;
+    color: #1f2328 !important;
+}
+
+.btn-info {
+    background-color: var(--info-color) !important;
+    border-color: var(--info-color) !important;
+    color: #0f2d38 !important;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color) !important;
+    border-color: var(--secondary-color) !important;
+}
+
+.btn-dark {
+    background-color: var(--dark-color) !important;
+    border-color: var(--dark-color) !important;
+}
+
+.alert {
+    border-radius: 0.8rem;
+    border: 1px solid transparent;
+}
+
+.alert-success {
+    background-color: #e9f7f0;
+    border-color: #bde5cf;
+    color: #0f5132;
+}
+
+.alert-danger {
+    background-color: #fceaea;
+    border-color: #f5c2c7;
+}
+
+.alert-warning {
+    background-color: #fff8df;
+    border-color: #ffe69c;
+}
+
+.badge.bg-secondary {
+    background-color: var(--secondary-color) !important;
+}
+
+.badge.bg-success {
+    background-color: var(--success-color) !important;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding-left: 0.8rem;
+        padding-right: 0.8rem;
+    }
+
+    .card {
+        border-radius: 0.8rem;
+    }
+
+    .table-responsive {
+        border-radius: 0.75rem;
+        overflow: hidden;
+    }
+}

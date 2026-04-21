@@ -1,0 +1,328 @@
+/* Auto Refresh Indicator */
+.refresh-indicator {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    background: rgba(13, 110, 253, 0.95);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.refresh-indicator.active {
+    display: flex;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive Table Wrapper */
+.table-responsive-custom {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
+}
+
+.table-responsive-custom table {
+    min-width: 100%;
+    white-space: nowrap;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    .table-responsive-custom {
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+    }
+
+    .table-responsive-custom table {
+        font-size: 0.875rem;
+    }
+
+    .table-responsive-custom th,
+    .table-responsive-custom td {
+        padding: 0.5rem !important;
+    }
+
+    /* Hide less important columns on mobile */
+    .hide-mobile {
+        display: none !important;
+    }
+
+    /* Stack buttons vertically on mobile */
+    .btn-group-mobile {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .btn-group-mobile .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .refresh-indicator {
+        top: auto;
+        bottom: 20px;
+        right: 10px;
+        left: 10px;
+        text-align: center;
+        justify-content: center;
+    }
+
+    .card {
+        margin-bottom: 1rem;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+}
+
+/* Loading States */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.loading-overlay .spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Responsive Grid Utilities */
+.grid-responsive {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+@media (max-width: 768px) {
+    .grid-responsive {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Auto-refresh badge */
+.auto-refresh-badge {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    background: #e7f5ff;
+    color: #0c63e4;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.auto-refresh-badge::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: #0c63e4;
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+/* Responsive Cards */
+.card-responsive {
+    height: 100%;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card-responsive:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Forms */
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+    }
+
+    .form-inline {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    .form-inline .form-control {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Mobile Navigation */
+@media (max-width: 992px) {
+    .navbar-collapse {
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+}
+
+.app-sidebar {
+    position: sticky;
+    top: 56px;
+    height: calc(100vh - 56px);
+    background: var(--surface-color, #ffffff);
+    border-right: 1px solid var(--border-color, #d8e5de);
+}
+
+.app-shell {
+    display: flex;
+    min-height: calc(100vh - 56px);
+    background: var(--surface-muted, #f4f8f6);
+}
+
+.app-shell-sidebar {
+    width: 260px;
+    flex: 0 0 260px;
+}
+
+.app-shell-content {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.app-sidebar-header {
+    padding: 1rem 1rem 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color, #d8e5de);
+}
+
+.app-sidebar-title {
+    color: var(--text-color, #1f2c28);
+}
+
+.app-sidebar-subtitle {
+    color: rgba(31, 44, 40, 0.65);
+}
+
+.app-sidebar-nav .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 12px;
+    padding: 0.6rem 0.75rem;
+    color: var(--text-color, #1f2c28);
+}
+
+.app-sidebar-nav .nav-link.text-body {
+    color: var(--text-color, #1f2c28) !important;
+}
+
+.app-sidebar-nav .nav-link.text-body:hover {
+    background: rgba(42, 135, 96, 0.10);
+    color: var(--primary-hover, #075432) !important;
+}
+
+.app-sidebar-nav .nav-link.active {
+    background: rgba(42, 135, 96, 0.16);
+    color: var(--primary-hover, #075432);
+}
+
+.app-sidebar-group-title {
+    color: rgba(31, 44, 40, 0.55) !important;
+}
+
+.sidebar-collapsed .app-shell-sidebar {
+    width: 76px;
+    flex-basis: 76px;
+}
+
+.sidebar-collapsed .app-sidebar-title,
+.sidebar-collapsed .app-sidebar-subtitle,
+.sidebar-collapsed .app-sidebar-label,
+.sidebar-collapsed .app-sidebar-group-title {
+    display: none;
+}
+
+.sidebar-collapsed .app-sidebar-nav .nav-link {
+    justify-content: center;
+    padding: 0.65rem 0;
+}
+
+.sidebar-collapsed .app-sidebar-icon {
+    margin-right: 0 !important;
+}
+
+#appSidebarOffcanvas {
+    width: 280px;
+    background: var(--surface-color, #ffffff);
+}
+
+#appSidebarOffcanvas .offcanvas-header {
+    border-bottom: 1px solid var(--border-color, #d8e5de);
+}
+
+#appSidebarOffcanvas .btn-close {
+    filter: none;
+    opacity: 0.6;
+}
+
+/* Utility Classes */
+.text-truncate-mobile {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .text-truncate-mobile {
+        max-width: 150px;
+    }
+}
+
+/* Status Badge Responsive */
+.badge-responsive {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+}
+
+@media (max-width: 576px) {
+    .badge-responsive {
+        font-size: 0.7rem;
+        padding: 0.25em 0.5em;
+    }
+}
