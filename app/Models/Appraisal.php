@@ -9,6 +9,19 @@ class Appraisal extends Model
 {
     use SoftDeletes;
 
+    // Appraisal Lifecycle Statuses
+    const STATUS_DRAFT = 'draft';
+    const STATUS_IN_PROGRESS = 'in_progress';
+    const STATUS_COMPLETED = 'completed';
+    const STATUS_APPROVED = 'approved';
+    
+    // HR Specific Lifecycle States
+    const STATUS_MIDTERM_TRIGGERED = 'midterm_triggered';
+    const STATUS_MIDTERM_COMPLETED = 'midterm_completed';
+    const STATUS_READY_FOR_FINAL = 'ready_for_final';
+    const STATUS_FINAL_COMPLETED = 'final_completed';
+    const STATUS_PENDING_HR = 'pending_hr';
+
     protected $fillable = [
         'user_id',
         'type',

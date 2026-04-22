@@ -1,0 +1,17 @@
+Role	Email	Employee ID	Password
+Super Admin	admin@ntg.com.bd	SUPER001	12345678
+HR Admin	hr.admin@ntg.com.bd	HR001	12345678
+Board	board@ntg.com.bd	B001	12345678
+Line Manager	manager@ntg.com.bd	LM001	12345678
+Employee	employee@ntg.com.bd	E001	12345678
+Employee	emptwo@gmail.com	EMP002	12345678
+
+
+How to Rollback (Post-Presentation):
+To restore the strict 6-month logic following your presentation:
+
+Open AppraisalController.php.
+Locate the /* ... */ comment block around line 36.
+Uncomment the original $midtermThreshold and $isMidtermWindow lines.
+Remove the line: $isMidtermWindow = true;.
+The HR hub is now primed and ready for your presentation. Good luck tomorrow!

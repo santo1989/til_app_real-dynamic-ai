@@ -506,71 +506,38 @@ class ObjectiveController extends Controller
     public function approvals(Request $request)
     {
         $user = auth()->user();
-        // Filters
-        $q = $request->get('q');
-        $fy = $request->get('fy');
-        $from = $request->get('from');
-        $to = $request->get('to');
-
-        $query = Objective::with('user')
-            ->where('type', 'individual')
-            ->where('status', 'draft')
-            ->whereHas('user', function ($uq) use ($user) {
-                $uq->where('line_manager_id', $user->id);
-            });
-
-        if (!empty($q)) {
-            $query->whereHas('user', function ($uq) use ($q) {
-                $uq->where('name', 'like', "%{$q}%")->orWhere('email', 'like', "%{$q}%");
-            })->orWhere('description', 'like', "%{$q}%");
-        }
-        if (!empty($fy)) {
-            $query->where('financial_year', $fy);
-        }
-        if (!empty($from)) {
-            $query->whereDate('created_at', '>=', $from);
-        }
-        if (!empty($to)) {
-            $query->whereDate('created_at', '<=', $to);
+        if (!$user->department_id) {
+            return redirect()->route('dashboard')->with('error', 'You are not assigned to a department.');
         }
 
-        $pending = $query->orderBy('user_id')->paginate(15)->appends($request->query());
+        $activeFY = FinancialYear::getActiveName();
+        if (empty($activeFY)) {
+            return redirect()->route('dashboard')->withErrors(['financial_year' => $this->missingActiveFinancialYearMessage()]);
+        }
 
-        // Per-employee counts map for quick display
-        $userIds = collect($pending->items())->pluck('user_id')->unique()->filter()->values()->toArray();
-        $counts = [];
-        if (!empty($userIds)) {
-            $rows = Objective::select('user_id', 'status', DB::raw('count(*) as cnt'))
-                ->whereIn('user_id', $userIds)
-                ->whereIn('status', ['draft', 'set'])
-                ->groupBy('user_id', 'status')
-                ->get();
-            foreach ($rows as $r) {
-                $counts[$r->user_id][$r->status] = $r->cnt;
+        // Fetch all active employees in the manager's department (excluding themselves)
+        $team = User::where('department_id', $user->department_id)
+            ->where('id', '!=', $user->id)
+            ->where('is_active', true)
+            ->with(['objectives' => function ($q) use ($activeFY) {
+                $q->where('financial_year', $activeFY)->where('type', 'individual');
+            }])
+            ->orderBy('name')
+            ->get();
+
+        // Calculate status for each employee
+        foreach ($team as $employee) {
+            $objectives = $employee->objectives;
+            if ($objectives->isEmpty()) {
+                $employee->performance_status = 'not_started';
+            } elseif ($objectives->every(fn($o) => $o->status === 'set')) {
+                $employee->performance_status = 'approved';
+            } else {
+                $employee->performance_status = 'draft';
             }
         }
 
-        // Midterm progress map (if model exists)
-        $midterm = [];
-        if (class_exists('\App\\Models\\MidtermProgress')) {
-            $mpClass = '\\App\\Models\\MidtermProgress';
-            $mpRows = $mpClass::whereIn('user_id', $userIds)
-                ->select('user_id', DB::raw('max(recorded_at) as recorded_at'))
-                ->groupBy('user_id')
-                ->get();
-            $latest = [];
-            foreach ($mpRows as $r) $latest[$r->user_id] = $r->recorded_at;
-            if (!empty($latest)) {
-                $mpEntries = $mpClass::whereIn('user_id', array_keys($latest))
-                    ->whereIn('recorded_at', array_values($latest))
-                    ->get();
-                foreach ($mpEntries as $e) {
-                    $midterm[$e->user_id] = $e->progress_percent;
-                }
-            }
-        }
-
-        return view('appraisal.line_manager.approvals', compact('pending', 'counts', 'midterm'));
+        return view('appraisal.line_manager.approvals', compact('team', 'activeFY'));
     }
 
     /**
@@ -743,91 +710,107 @@ class ObjectiveController extends Controller
     }
     public function showSetForUser($user_id)
     {
-        $employee = User::findOrFail($user_id);
+        $employee = User::with('department', 'team')->findOrFail($user_id);
+        
+        // Authorization: Current line manager, HR, or Super Admin
         $this->authorize('manageObjectivesFor', $employee);
 
-        $activeFY = FinancialYear::getActiveName();
-        if (empty($activeFY)) {
-            return back()->withErrors(['financial_year' => $this->missingActiveFinancialYearMessage()]);
+        $activeFY = FinancialYear::getActive();
+        if (!$activeFY) {
+            return back()->with('error', 'No active financial year found.');
         }
 
-        $existingObjectives = $employee->objectives()
-            ->where('financial_year', $activeFY)
-            ->where('type', 'individual')
-            ->orderBy('id')
+        // 1. Departmental Objectives (The 30%)
+        $deptObjectives = \App\Models\DepartmentalObjectiveAssignment::where('financial_year_id', $activeFY->id)
+            ->where('department_id', $employee->department_id)
+            ->where(function($q) use ($employee) {
+                $q->whereNull('team_id')->orWhere('team_id', $employee->team_id);
+            })
+            ->with(['master', 'department'])
             ->get();
 
-        $individualObjectiveOptions = $this->individualObjectiveOptions();
+        // 2. Individual Objectives (The 70%)
+        $individualObjectives = Objective::where('user_id', $employee->id)
+            ->where('financial_year', $activeFY->label)
+            ->where('type', 'individual')
+            ->get();
 
-        // Merge current objective descriptions with options to ensure editing shows existing values
-        $currentDescriptions = $existingObjectives
-            ->pluck('description')
-            ->filter()
-            ->map(fn($d) => trim($d))
-            ->unique()
-            ->values();
-        $individualObjectiveOptions = collect($individualObjectiveOptions)
-            ->concat($currentDescriptions)
-            ->unique()
-            ->sort()
-            ->values();
+        $isApproved = $individualObjectives->isNotEmpty() && $individualObjectives->every(fn($o) => $o->status === 'set');
 
-        return view('appraisal.line_manager.set_objectives', compact('employee', 'activeFY', 'existingObjectives', 'individualObjectiveOptions'));
+        $masters = IndividualObjectiveMaster::where('is_active', true)->orderBy('title')->get();
+
+        return view('appraisal.line_manager.set_objectives', compact('employee', 'activeFY', 'deptObjectives', 'individualObjectives', 'masters', 'isApproved'));
     }
+
     public function setForUser(ObjectiveSettingRequest $request, $user_id)
     {
         $employee = User::findOrFail($user_id);
         $this->authorize('manageObjectivesFor', $employee);
 
-        $activeFY = FinancialYear::getActiveName();
-        if (empty($activeFY)) {
-            return back()->withErrors(['financial_year' => $this->missingActiveFinancialYearMessage()])->withInput();
+        $activeFY = FinancialYear::getActive();
+        if (!$activeFY) {
+            return response()->json(['message' => 'No active financial year found.'], 422);
         }
 
-        $activeModel = FinancialYear::getActive();
-        if ($activeModel) {
-            $fyService = new FinancialYearService($activeModel);
-            $fyName = $fyService->label();
-            if (!$this->isCreationAllowed($fyName)) {
-                return back()->withErrors(['message' => 'Objective creation is not allowed at this time (outside allowed window).']);
-            }
-        } else {
-            $fyName = FinancialYear::getActiveName();
-            if (empty($fyName)) {
-                return back()->withErrors(['financial_year' => $this->missingActiveFinancialYearMessage()]);
-            }
+        $fyName = $activeFY->label;
+
+        // Check if existing objectives are already locked (Approved)
+        $existing = Objective::where('user_id', $employee->id)
+            ->where('financial_year', $fyName)
+            ->where('type', 'individual')
+            ->get();
+
+        $isCurrentlyApproved = $existing->isNotEmpty() && $existing->every(fn($o) => $o->status === 'set');
+
+        // Locking Logic: Only HR/Super Admin can override a 'set' status
+        if ($isCurrentlyApproved && !auth()->user()->isHrAdmin()) {
+            return response()->json(['message' => 'This performance plan is locked and verified. Only HR can make modifications.'], 403);
         }
+
         $data = $request->validated();
-        $employee->objectives()->where('financial_year', $fyName)->delete();
-        foreach ($data['objectives'] as $obj) {
-            Objective::create([
-                'user_id' => $employee->id,
-                'type' => 'individual',
-                'description' => $obj['description'],
-                'weightage' => (int) $obj['weightage'],
-                'target' => $obj['target'],
-                'status' => 'set',
-                'financial_year' => $fyName,
-                'created_by' => auth()->id(),
+        $targetStatus = $request->input('status', 'draft');
+
+        DB::beginTransaction();
+        try {
+            // Clear existing individual objectives to sync with new list
+            Objective::where('user_id', $employee->id)
+                ->where('financial_year', $fyName)
+                ->where('type', 'individual')
+                ->delete();
+
+            foreach ($data['objectives'] as $obj) {
+                Objective::create([
+                    'user_id' => $employee->id,
+                    'type' => 'individual',
+                    'description' => $obj['description'],
+                    'weightage' => (int) $obj['weightage'],
+                    'target' => $obj['target'] ?? null,
+                    'status' => $targetStatus,
+                    'financial_year' => $fyName,
+                    'created_by' => auth()->id(),
+                    'approved_by' => $targetStatus === 'set' ? auth()->id() : null,
+                    'approved_at' => $targetStatus === 'set' ? now() : null,
+                ]);
+            }
+
+            AuditLog::create([
+                'user_id' => auth()->id(),
+                'action' => $targetStatus === 'set' ? 'objective_plan_approved' : 'objective_plan_draft_saved',
+                'details' => "Manager " . ($targetStatus === 'set' ? 'approved' : 'saved draft') . " objectives for employee ID {$employee->id} for FY {$fyName}",
             ]);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => $targetStatus === 'set' ? 'Performance plan approved and locked.' : 'Draft saved successfully.',
+                'status' => $targetStatus
+            ]);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error("Failed to set objectives for user {$employee->id}: " . $e->getMessage());
+            return response()->json(['message' => 'Failed to save objectives. Please try again.'], 500);
         }
-        // Upsert IDP if payload provided by line manager
-        if (!empty($data['idp']) && is_array($data['idp'])) {
-            Idp::updateOrCreate(
-                ['user_id' => $employee->id, 'financial_year' => $fyName],
-                [
-                    'description' => $data['idp']['description'] ?? null,
-                    'review_date' => isset($data['idp']['review_date']) ? $data['idp']['review_date'] : null,
-                    'status' => $data['idp']['status'] ?? 'open',
-                ]
-            );
-        }
-        AuditLog::create([
-            'user_id' => auth()->id(),
-            'action' => 'objectives_set_for_employee',
-            'details' => "Line manager set objectives for employee ID {$employee->id} for FY {$fyName}",
-        ]);
-        return redirect()->route('objectives.team')->with('success', "Objectives set for {$employee->name}.");
     }
     public function departmentObjectives(Request $request)
     {

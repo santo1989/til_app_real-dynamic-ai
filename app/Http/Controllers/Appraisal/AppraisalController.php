@@ -24,8 +24,253 @@ class AppraisalController extends Controller
     // Resource CRUD for super admin/HR admin
     public function index()
     {
-        $appraisals = Appraisal::with('user')->orderByDesc('id')->get();
-        return view('appraisal.super_admin.appraisals_index', compact('appraisals'));
+        $activeModel = FinancialYear::getActive();
+        $activeFY = $activeModel ? $activeModel->label : null;
+        
+        if (!$activeModel) {
+            $midtermList = [];
+            $finalYearList = [];
+            return view('appraisal.super_admin.appraisals_index', compact('midtermList', 'finalYearList', 'activeFY'));
+        }
+
+        /* 
+        $midtermThreshold = \Carbon\Carbon::parse($activeModel->start_date)->addMonths(6);
+        $isMidtermWindow = now()->greaterThanOrEqualTo($midtermThreshold);
+        */
+
+        // DEMO MODE: Force midterm window to be open for presentation
+        $isMidtermWindow = true;
+        $midtermThreshold = \Carbon\Carbon::parse($activeModel->start_date)->addMonths(6); // Keep for view context
+
+        // Fetch all active staff with 'employee' role
+        $employees = User::where('is_active', true)
+                         ->where('role', 'employee')
+                         ->get();
+
+        $midtermList = [];
+        $finalYearList = [];
+
+        foreach ($employees as $emp) {
+            $midTermApp = Appraisal::where('user_id', $emp->id)
+                ->where('financial_year', $activeFY)
+                ->where('type', 'midterm')
+                ->first();
+
+            // Midterm Logic: Eligible if 6 months passed AND not yet completed
+            if ($isMidtermWindow) {
+                // Now and in the future, we use the specific midterm_triggered status
+                $isMidtermActive = $midTermApp && in_array($midTermApp->status, [
+                    Appraisal::STATUS_MIDTERM_TRIGGERED, 
+                    Appraisal::STATUS_IN_PROGRESS,
+                    Appraisal::STATUS_DRAFT // Legacy support
+                ]);
+
+                if (!$midTermApp || $isMidtermActive) {
+                    $midtermList[] = [
+                        'user' => $emp,
+                        'status' => $midTermApp ? $midTermApp->status : 'eligible',
+                        'appraisal_id' => $midTermApp ? $midTermApp->id : null
+                    ];
+                }
+            }
+
+            // Final Year Logic: Ready if midterm completed
+            if ($midTermApp && $midTermApp->status === Appraisal::STATUS_MIDTERM_COMPLETED) {
+                $finalYearList[] = [
+                    'user' => $emp,
+                    'status' => 'ready_for_final'
+                ];
+            }
+        }
+
+        return view('appraisal.super_admin.appraisals_index', compact('midtermList', 'finalYearList', 'activeFY', 'isMidtermWindow', 'midtermThreshold'));
+    }
+
+    public function triggerMidterm($user_id)
+    {
+        $employee = User::findOrFail($user_id);
+        $activeFY = FinancialYear::getActiveName();
+        
+        if (!$activeFY) {
+            return back()->withErrors(['message' => 'No active financial year found.']);
+        }
+
+        $appraisal = Appraisal::updateOrCreate(
+            [
+                'user_id' => $employee->id,
+                'type' => 'midterm',
+                'financial_year' => $activeFY
+            ],
+            [
+                'status' => Appraisal::STATUS_MIDTERM_TRIGGERED,
+                'date' => now(),
+                'conducted_by' => auth()->id() // HR Initiated
+            ]
+        );
+
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'midterm_review_triggered',
+            'details' => "HR triggered midterm review for {$employee->name} (FY {$activeFY})",
+        ]);
+
+        return back()->with('success', "Midterm review request sent for {$employee->name}. Line Manager will be notified.");
+    }
+
+    // --- Line Manager Midterm Workflow ---
+
+    public function midtermList()
+    {
+        $activeFY = FinancialYear::getActiveName();
+        if (!$activeFY) return back()->withErrors(['message' => 'No active financial year.']);
+
+        // Employees in my dept who have been triggered for midterm
+        $employees = User::where('department_id', auth()->user()->department_id)
+            ->where('role', 'employee')
+            ->where('is_active', true)
+            ->whereHas('appraisals', function($q) use ($activeFY) {
+                $q->where('type', 'midterm')
+                  ->where('financial_year', $activeFY)
+                  ->whereIn('status', [Appraisal::STATUS_MIDTERM_TRIGGERED, Appraisal::STATUS_IN_PROGRESS]);
+            })
+            ->get();
+
+        return view('appraisal.line_manager.midterm_list', compact('employees', 'activeFY'));
+    }
+
+    public function storeMidterm(Request $request)
+    {
+        $appraisal = Appraisal::findOrFail($request->appraisal_id);
+        
+        // Store per-objective notes in JSON
+        $notes = $request->input('notes', []);
+        $appraisal->update([
+            'ratings' => ['notes' => $notes],
+            'status' => Appraisal::STATUS_MIDTERM_COMPLETED,
+            'date' => now()
+        ]);
+
+        return redirect()->route('appraisal.midterm.list')->with('success', 'Midterm notes saved successfully.');
+    }
+
+    // --- Line Manager Final Year Workflow ---
+
+    public function finalList()
+    {
+        $activeFY = FinancialYear::getActiveName();
+        if (!$activeFY) return back()->withErrors(['message' => 'No active financial year.']);
+
+        // Employees in my dept who are ready for final marking (triggered by HR)
+        $employees = User::where('department_id', auth()->user()->department_id)
+            ->where('role', 'employee')
+            ->where('is_active', true)
+            ->whereHas('appraisals', function($q) use ($activeFY) {
+                $q->where('type', 'midterm') // We track lifecycle on the main record
+                  ->where('financial_year', $activeFY)
+                  ->where('status', Appraisal::STATUS_READY_FOR_FINAL);
+            })
+            ->get();
+
+        return view('appraisal.line_manager.final_list', compact('employees', 'activeFY'));
+    }
+
+    public function conductFinal($user_id)
+    {
+        $employee = User::findOrFail($user_id);
+        $activeFY = FinancialYear::getActiveName();
+        $objectives = $employee->objectives()->where('financial_year', $activeFY)->get();
+        
+        $appraisal = Appraisal::where([
+            'user_id' => $employee->id,
+            'type' => 'midterm',
+            'financial_year' => $activeFY,
+        ])->first();
+
+        return view('appraisal.line_manager.conduct_final', compact('employee', 'objectives', 'appraisal', 'activeFY'));
+    }
+
+    public function storeFinal(Request $request)
+    {
+        $appraisal = Appraisal::findOrFail($request->appraisal_id);
+        $scores = $request->input('scores', []);
+        $totalWeightedScore = 0;
+
+        foreach ($scores as $objId => $ta) {
+            $objective = Objective::find($objId);
+            if ($objective) {
+                $totalWeightedScore += ($objective->weightage * $ta / 100);
+            }
+        }
+
+        // Determine Rating
+        $rating = 'below';
+        if ($totalWeightedScore >= 95) $rating = 'outstanding';
+        elseif ($totalWeightedScore >= 85) $rating = 'good'; // "Very Good" in view, "good" in enum
+        elseif ($totalWeightedScore >= 70) $rating = 'average'; // "Good" in view, "average" in enum
+
+        $appraisal->update([
+            'ratings' => array_merge($appraisal->ratings ?? [], ['scores' => $scores]),
+            'total_score' => $totalWeightedScore,
+            'rating' => $rating,
+            'status' => Appraisal::STATUS_FINAL_COMPLETED,
+            'signed_by_manager' => true,
+            'manager_signed_at' => now()
+        ]);
+
+        return redirect()->route('appraisal.final.list')->with('success', 'Final assessment submitted successfully.');
+    }
+
+    // --- HR Gating ---
+
+    public function triggerFinal($appraisal_id)
+    {
+        $appraisal = Appraisal::findOrFail($appraisal_id);
+        $appraisal->update(['status' => Appraisal::STATUS_READY_FOR_FINAL]);
+
+        return back()->with('success', 'Employee cleared for final evaluation.');
+    }
+
+    public function triggerAllMidterms()
+    {
+        $activeFY = FinancialYear::getActiveName();
+        if (!$activeFY) {
+            return back()->withErrors(['message' => 'No active financial year found.']);
+        }
+
+        $employees = User::where('is_active', true)
+                         ->where('role', 'employee')
+                         ->get();
+        $count = 0;
+
+        foreach ($employees as $emp) {
+            $exists = Appraisal::where('user_id', $emp->id)
+                ->where('type', 'midterm')
+                ->where('financial_year', $activeFY)
+                ->exists();
+
+            if (!$exists) {
+                Appraisal::create([
+                    'user_id' => $emp->id,
+                    'type' => 'midterm',
+                    'status' => Appraisal::STATUS_MIDTERM_TRIGGERED,
+                    'financial_year' => $activeFY,
+                    'date' => now(),
+                    'conducted_by' => auth()->id()
+                ]);
+                $count++;
+            }
+        }
+
+        if ($count > 0) {
+            AuditLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'bulk_midterm_triggered',
+                'details' => "HR triggered midterm reviews for {$count} employees (FY {$activeFY})",
+            ]);
+            return back()->with('success', "Midterm reviews successfully triggered for {$count} employees.");
+        }
+
+        return back()->with('info', "No new employees were eligible for trigger.");
     }
     public function create()
     {
@@ -427,16 +672,35 @@ class AppraisalController extends Controller
                 return back()->withErrors(['message' => 'Conducting midterms is locked after the 9th month of the financial year.']);
             }
         }
-        // Find or create a midterm Appraisal record so the view can generate PDFs and sign
-        $appraisal = Appraisal::firstOrCreate([
+        // Find the triggered midterm Appraisal record
+        $appraisal = Appraisal::where([
             'user_id' => $employee->id,
             'type' => 'midterm',
             'financial_year' => $activeFY,
-        ], [
-            'date' => now(),
-            'status' => 'in_progress',
-            'conducted_by' => auth()->id(),
-        ]);
+        ])->first();
+
+        if (!$appraisal || ($appraisal->status !== Appraisal::STATUS_MIDTERM_TRIGGERED && $appraisal->status !== Appraisal::STATUS_IN_PROGRESS)) {
+            if (!auth()->user()->isHrAdmin() && !auth()->user()->isSuperAdmin()) {
+                return back()->withErrors(['message' => 'The Midterm review for this employee has not been initiated by HR yet.']);
+            }
+        }
+        
+        // Ensure its status is in_progress when manager starts
+        if ($appraisal && $appraisal->status === Appraisal::STATUS_MIDTERM_TRIGGERED) {
+            $appraisal->update(['status' => Appraisal::STATUS_IN_PROGRESS]);
+        }
+
+        // Handle case where it doesn't exist but user is HR (creating for convenience)
+        if (!$appraisal && (auth()->user()->isHrAdmin() || auth()->user()->isSuperAdmin())) {
+            $appraisal = Appraisal::create([
+                'user_id' => $employee->id,
+                'type' => 'midterm',
+                'financial_year' => $activeFY,
+                'date' => now(),
+                'status' => Appraisal::STATUS_IN_PROGRESS,
+                'conducted_by' => auth()->id(),
+            ]);
+        }
 
         // Ensure current user is authorized to view/conduct this appraisal
         $this->authorize('view', $appraisal);
@@ -508,7 +772,7 @@ class AppraisalController extends Controller
             'ratings' => $ratings,
             'financial_year' => $activeFY,
             'conducted_by' => auth()->id(),
-            'status' => 'completed',
+            'status' => Appraisal::STATUS_MIDTERM_COMPLETED,
         ]);
         return redirect()->route('objectives.team')->with('success', 'Midterm conducted for ' . $employee->name);
     }

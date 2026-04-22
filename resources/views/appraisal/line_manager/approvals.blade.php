@@ -1,303 +1,130 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="card card-responsive">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center flex-wrap">
-            <h5 class="mb-0"><i class="fas fa-tasks"></i> Pending Approvals</h5>
-            <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-light text-dark">
-                    <i class="fas fa-sync-alt"></i> Auto-refresh: 30s
-                </span>
-                <button class="btn btn-sm btn-outline-light" data-manual-refresh="approvals-container"
-                    data-refresh-url="{{ route('objectives.approvals') }}">
-                    <i class="fas fa-sync"></i> Refresh
-                </button>
-                <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-light">Back to Dashboard</a>
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="d-flex align-items-center justify-content-between pb-3 border-bottom">
+                <div>
+                    <h2 class="fw-bold mb-1" style="color: #1e293b;">Departmental Approvals & Oversight</h2>
+                    <p class="text-muted small mb-0">Managing team performance plans for cycle: <span class="badge bg-success bg-opacity-10 text-success fw-bold px-3">{{ $activeFY }}</span></p>
+                </div>
+                <div class="d-flex gap-2">
+                    <div class="bg-white border rounded-pill px-3 py-2 shadow-sm d-flex align-items-center">
+                        <span class="status-indicator-pulse me-2"></span>
+                        <span class="small fw-bold text-success">Live Cycle</span>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="card-body" id="approvals-container" data-auto-refresh="true"
-            data-refresh-url="{{ route('objectives.approvals') }}?{{ http_build_query(request()->query()) }}"
-            data-refresh-target="approvals-container">
+    </div>
 
-            <form method="GET" class="row g-2 mb-3">
-                <div class="col-md-4">
-                    <input type="text" name="q" value="{{ request('q') }}" class="form-control"
-                        placeholder="Search employee name, email or description">
-                </div>
-                <div class="col-md-2">
-                    <input type="text" name="fy" value="{{ request('fy') }}" class="form-control"
-                        placeholder="Financial Year (e.g. 2025-26)">
-                </div>
-                <div class="col-md-2">
-                    <input type="date" name="from" value="{{ request('from') }}" class="form-control">
-                </div>
-                <div class="col-md-2">
-                    <input type="date" name="to" value="{{ request('to') }}" class="form-control">
-                </div>
-                <div class="col-md-2">
-                    <button class="btn btn-outline-primary">Filter</button>
-                </div>
-            </form>
+    @include('components.alert')
 
-            @if ($pending->isEmpty())
-                <div class="alert alert-info">No pending objectives for your direct reports.</div>
-            @else
-                <form id="bulk-actions-form" method="POST" action="{{ route('objectives.bulk_approve') }}">
-                    @csrf
-                    <input type="hidden" name="_action" value="approve">
-                    <div class="mb-2 d-flex gap-2">
-                        <button type="submit" class="btn btn-outline-success btn-sm" id="bulk-approve">Bulk
-                            Approve</button>
-                        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal"
-                            data-bs-target="#bulkRejectModal">Bulk Reject</button>
-                        <div class="ms-auto"><small class="text-muted">Selected: <span id="selected-count">0</span></small>
-                        </div>
-                    </div>
-
-                    <div class="table-responsive-custom">
-                        <table class="table table-striped">
-                            <thead class="table-light">
-                                <tr>
-                                    <th><input type="checkbox" id="select-all"></th>
-                                    <th>#</th>
-                                    <th>Employee</th>
-                                    <th class="hide-mobile">Counts (set / pending / rejected)</th>
-                                    <th class="hide-mobile">Midterm</th>
-                                    <th>Description</th>
-                                    <th class="hide-mobile">Weightage</th>
-                                    <th class="hide-mobile">Target</th>
-                                    <th class="hide-mobile">Submitted At</th>
-                                    <th class="text-end">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($pending as $obj)
-                                    <tr>
-                                        <td><input type="checkbox" name="ids[]" value="{{ $obj->id }}"
-                                                class="select-item"></td>
-                                        <td>{{ $obj->id }}</td>
-                                        <td class="text-truncate-mobile">
-                                            {{ $obj->user?->name ?? 'N/A' }}<br>
-                                            <small class="text-muted">{{ $obj->user?->email }}</small>
-                                        </td>
-                                        <td class="hide-mobile">
-                                            @php $c = $counts[$obj->user_id] ?? []; @endphp
-                                            <span class="badge badge-responsive bg-success">{{ $c['set'] ?? 0 }}</span>
-                                            <span
-                                                class="badge badge-responsive bg-warning text-dark">{{ $c['pending'] ?? 0 }}</span>
-                                            <span class="badge badge-responsive bg-danger">{{ $c['rejected'] ?? 0 }}</span>
-                                        </td>
-                                        <td class="hide-mobile">
-                                            @if (isset($midterm[$obj->user_id]))
-                                                <strong>{{ $midterm[$obj->user_id] }}%</strong>
-                                            @else
-                                                <small class="text-muted">—</small>
-                                            @endif
-                                            <div class="mt-1">
-                                                <button class="btn btn-sm btn-outline-primary record-midterm-btn"
-                                                    data-user-id="{{ $obj->user_id }}"
-                                                    data-objective-id="{{ $obj->id }}"
-                                                    data-fy="{{ $obj->financial_year }}"
-                                                    @cannot('viewMidterm', $obj->user) disabled @endcannot>
-                                                    Record
-                                                </button>
-                                            </div>
-                                        </td>
-                                        <td>{{ $obj->description }}
-                                            @if ($obj->rejection_reason)
-                                                <div><small class="text-danger">Rejected:
-                                                        {{ $obj->rejection_reason }}</small></div>
-                                            @endif
-                                        </td>
-                                        <td class="hide-mobile">{{ $obj->weightage }}%</td>
-                                        <td class="hide-mobile">{{ $obj->target }}</td>
-                                        <td class="hide-mobile">{{ optional($obj->created_at)->format('Y-m-d H:i') }}</td>
-                                        <td class="text-end">
-                                            <form action="{{ route('objectives.approve', $obj) }}" method="POST"
-                                                style="display:inline-block;">
-                                                @csrf
-                                                <button type="submit" class="btn btn-sm btn-outline-success"
-                                                    @cannot('approve', $obj) disabled @endcannot>
-                                                    Approve
-                                                </button>
-                                            </form>
-                                            <button class="btn btn-sm btn-outline-danger" data-bs-toggle="collapse"
-                                                data-bs-target="#reject-form-{{ $obj->id }}"
-                                                @cannot('reject', $obj) disabled @endcannot>
-                                                Reject
-                                            </button>
-                                            <div class="collapse mt-2" id="reject-form-{{ $obj->id }}">
-                                                <form action="{{ route('objectives.reject', $obj) }}" method="POST"
-                                                    class="d-flex">
-                                                    @csrf
-                                                    <input type="text" name="reason"
-                                                        class="form-control form-control-sm me-2"
-                                                        placeholder="Reason (optional)">
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                        @cannot('reject', $obj) disabled @endcannot>
-                                                        Confirm
-                                                        Reject</button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </form>
-
-                <div class="d-flex justify-content-center">{{ $pending->links() }}</div>
-
-                <!-- Bulk reject modal -->
-                <div class="modal fade" id="bulkRejectModal" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Bulk Reject</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                    aria-label="Close"></button>
+    <!-- Team Management Hub -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden border mb-5">
+        <div class="card-header bg-white py-4 px-4 border-0">
+            <h5 class="fw-bold mb-0 text-dark opacity-75"><i class="fas fa-users-viewfinder me-2 text-success"></i> Department Staff Performance Status</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead style="background-color: #f8fbff; color: #1e293b;">
+                    <tr>
+                        <th class="px-4 py-3 text-uppercase smaller fw-bold ls-1">Member Info</th>
+                        <th class="px-4 py-3 text-uppercase smaller fw-bold ls-1">Current Role</th>
+                        <th class="px-4 py-3 text-uppercase smaller fw-bold ls-1 text-center">Lifecycle Status</th>
+                        <th class="px-4 py-3 text-uppercase smaller fw-bold ls-1 text-center">Weightage</th>
+                        <th class="px-4 py-3 text-uppercase smaller fw-bold ls-1 text-end">Operations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($team as $employee)
+                    <tr class="transition-hover">
+                        <td class="px-4 py-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-success bg-opacity-10 text-success rounded-circle me-3 d-flex align-items-center justify-content-center fw-bold" style="width: 42px; height: 42px; font-size: 0.9rem;">
+                                    {{ substr($employee->name, 0, 1) }}
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark" style="font-size: 0.95rem;">{{ $employee->name }}</div>
+                                    <div class="text-muted smaller">ID: {{ $employee->employee_id }}</div>
+                                </div>
                             </div>
-                            <div class="modal-body">
-                                <form id="bulk-reject-form" method="POST"
-                                    action="{{ route('objectives.bulk_reject') }}">
-                                    @csrf
-                                    <input type="hidden" name="ids" id="bulk-reject-ids">
-                                    <div class="mb-3">
-                                        <label>Reason (optional)</label>
-                                        <input type="text" name="reason" class="form-control">
-                                    </div>
-                                </form>
-                                <p class="text-muted">This will mark selected objectives as rejected and record the reason.
-                                </p>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="small fw-medium text-slate-600">{{ $employee->designation ?: 'Team Member' }}</span>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            @if($employee->performance_status === 'approved')
+                                <span class="badge rounded-pill px-3 py-2 shadow-sm" style="background-color: #1a6b3b; color: #fff;">
+                                    <i class="fas fa-check-double me-1"></i> Plan Verified
+                                </span>
+                            @elseif($employee->performance_status === 'draft')
+                                <span class="badge rounded-pill px-3 py-2 bg-warning-soft text-warning border-warning border-opacity-25" style="background-color: rgba(245, 158, 11, 0.1);">
+                                    <i class="fas fa-pen-nib me-1"></i> Draft Submitted
+                                </span>
+                            @else
+                                <span class="badge rounded-pill px-3 py-2 bg-light text-muted border">
+                                    <i class="fas fa-hourglass-start me-1"></i> Not Started
+                                </span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            @php 
+                                $totalWeight = $employee->objectives->sum('weightage') + 30; // 30 is fixed for dept
+                            @endphp
+                            <div class="small fw-bold {{ $totalWeight == 100 ? 'text-success' : 'text-danger' }}">
+                                {{ $totalWeight }}% / 100%
                             </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-outline-secondary"
-                                    data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" class="btn btn-outline-danger" id="confirm-bulk-reject">Reject
-                                    Selected</button>
+                            <div class="progress mt-1 mx-auto" style="height: 4px; width: 60px;">
+                                <div class="progress-bar bg-{{ $totalWeight == 100 ? 'success' : 'warning' }}" style="width: {{ $totalWeight }}%"></div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <script>
-                    // Select all / count
-                    document.addEventListener('DOMContentLoaded', function() {
-                        const selectAll = document.getElementById('select-all');
-                        const items = document.querySelectorAll('.select-item');
-                        const selectedCount = document.getElementById('selected-count');
-
-                        function updateCount() {
-                            const n = document.querySelectorAll('.select-item:checked').length;
-                            selectedCount.textContent = n;
-                        }
-                        if (selectAll) selectAll.addEventListener('change', function() {
-                            items.forEach(i => i.checked = this.checked);
-                            updateCount();
-                        });
-                        items.forEach(i => i.addEventListener('change', updateCount));
-
-                        // Prepare bulk reject form
-                        const bulkRejectModal = document.getElementById('bulkRejectModal');
-                        document.getElementById('confirm-bulk-reject').addEventListener('click', function() {
-                            const checked = Array.from(document.querySelectorAll('.select-item:checked')).map(i => i
-                                .value);
-                            if (checked.length === 0) {
-                                alert('Select at least one objective to reject');
-                                return;
-                            }
-                            document.getElementById('bulk-reject-ids').value = JSON.stringify(checked);
-                            document.getElementById('bulk-reject-form').submit();
-                        });
-
-                        // Record midterm modal
-                        const recordBtns = document.querySelectorAll('.record-midterm-btn');
-                        const midtermModalHtml = `
-                                <div class="modal fade" id="midtermModal" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Record Midterm Progress</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <form id="midterm-form" method="POST" action="{{ route('objectives.midterm.store') }}">
-                                                        @csrf
-                                                        <input type="hidden" name="user_id" id="midterm-user-id">
-                                                        <input type="hidden" name="objective_id" id="midterm-objective-id">
-                                                        <input type="hidden" name="financial_year" id="midterm-fy">
-                                                        <div class="mb-3">
-                                                                <label>Progress (%)</label>
-                                                                <input type="number" name="progress_percent" id="midterm-progress" class="form-control" min="0" max="100" required>
-                                                        </div>
-                                                        <div class="mb-3">
-                                                                <label>Notes</label>
-                                                                <textarea name="notes" class="form-control" rows="3" id="midterm-notes"></textarea>
-                                                        </div>
-                                                </form>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="button" class="btn btn-outline-primary" id="midterm-save">Save</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>`;
-
-                        // Append modal to body when needed
-                        document.body.insertAdjacentHTML('beforeend', midtermModalHtml);
-                        const midtermModalEl = document.getElementById('midtermModal');
-                        const midtermModal = new bootstrap.Modal(midtermModalEl);
-                        recordBtns.forEach(btn => {
-                            btn.addEventListener('click', async function() {
-                                const userId = this.dataset.userId;
-                                const objectiveId = this.dataset.objectiveId;
-                                const fy = this.dataset.fy;
-                                document.getElementById('midterm-user-id').value = userId;
-                                document.getElementById('midterm-objective-id').value = objectiveId;
-                                document.getElementById('midterm-fy').value = fy;
-                                // Clear while loading
-                                document.getElementById('midterm-progress').value = '';
-                                document.getElementById('midterm-notes').value = '';
-                                // Fetch latest midterm entry via AJAX and pre-fill if available
-                                try {
-                                    const url = `{{ url('/appraisal/approvals/midterm') }}/${userId}` + (
-                                        fy ? `?fy=${encodeURIComponent(fy)}` : '');
-                                    const res = await fetch(url, {
-                                        credentials: 'same-origin',
-                                        headers: {
-                                            'Accept': 'application/json'
-                                        }
-                                    });
-                                    if (res.ok) {
-                                        const body = await res.json();
-                                        if (body.data && body.data.length > 0) {
-                                            const latest = body.data[0];
-                                            if (latest.progress_percent !== undefined && latest
-                                                .progress_percent !== null) {
-                                                document.getElementById('midterm-progress').value = latest
-                                                    .progress_percent;
-                                            }
-                                            if (latest.notes) {
-                                                document.getElementById('midterm-notes').value = latest
-                                                    .notes;
-                                            }
-                                        }
-                                    }
-                                } catch (err) {
-                                    // ignore - leave fields blank
-                                    console.error('Failed to fetch midterm:', err);
-                                }
-                                midtermModal.show();
-                            });
-                        });
-                        document.getElementById('midterm-save').addEventListener('click', function() {
-                            document.getElementById('midterm-form').submit();
-                        });
-                    });
-                </script>
+                        </td>
+                        <td class="px-4 py-3 text-end">
+                            <a href="{{ route('objectives.show_set_for_user', $employee->id) }}" class="btn btn-sm px-3 rounded-pill fw-bold transition-all shadow-sm-hover {{ $employee->performance_status === 'approved' ? 'btn-outline-success border-success' : 'text-white' }}" style="{{ $employee->performance_status === 'approved' ? '' : 'background-color: #1a6b3b;' }}">
+                                @if($employee->performance_status === 'not_started')
+                                    <i class="fas fa-plus-circle me-1"></i> Initiate Plan
+                                @elseif($employee->performance_status === 'approved')
+                                    <i class="fas fa-eye me-1"></i> View Plan
+                                @else
+                                    <i class="fas fa-edit me-1"></i> Manage Plan
+                                @endif
+                            </a>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer bg-white py-4 border-0 text-center opacity-50">
+            <span class="smaller fw-bold ls-1 text-muted text-uppercase">End of departmental list</span>
         </div>
     </div>
-    @endif
+</div>
+
+<style>
+    .ls-1 { letter-spacing: 0.05em; }
+    .smaller { font-size: 0.7rem; }
+    .text-slate-600 { color: #475569; }
+    .transition-hover:hover { background-color: #f8fbff; }
+    .shadow-sm-hover:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); }
+    .transition-all { transition: all 0.3s ease; }
+    
+    .status-indicator-pulse {
+        width: 8px;
+        height: 8px;
+        background-color: #10b981;
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 1);
+        animation: pulse-green 2s infinite;
+    }
+
+    @keyframes pulse-green {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+</style>
 @endsection

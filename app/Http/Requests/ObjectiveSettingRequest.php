@@ -18,6 +18,8 @@ class ObjectiveSettingRequest extends FormRequest
         // Support both bulk submission (objectives array) and single-object forms.
         if ($this->has('objectives')) {
             return [
+                'status' => 'nullable|string|in:draft,set',
+                'financial_year' => 'nullable|string',
                 'objectives' => 'required|array|min:1|max:15',
                 'objectives.*.type' => 'required|string|in:departmental,individual',
                 'objectives.*.description' => 'required|string',
@@ -99,10 +101,11 @@ class ObjectiveSettingRequest extends FormRequest
                         $v->errors()->add('objectives', "Individual objectives must be between {$indMin} and {$indMax}.");
                     }
                 } else {
-                    $requiredTotal = config('appraisal.individual_total', 70);
+                    /* 
                     if ($total !== $requiredTotal) {
                         $v->errors()->add('objectives', "Total weightage of individual objectives must equal {$requiredTotal}%.");
                     }
+                    */
 
                     $indMin = 1; // Relaxed
                     $indMax = config('appraisal.individual_max', 10);

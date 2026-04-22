@@ -21,7 +21,6 @@
             'title' => 'My Appraisal',
             'items' => [
                 ['label' => 'My Objectives', 'icon' => 'fa-bullseye', 'route' => 'objectives.my', 'active' => request()->routeIs('objectives.my')],
-                ['label' => 'Objective Form', 'icon' => 'fa-file-signature', 'route' => 'objectives.my.form', 'active' => request()->routeIs('objectives.my.form')],
                 ['label' => 'My IDP', 'icon' => 'fa-graduation-cap', 'route' => 'idp.index', 'active' => request()->routeIs('idp.*')],
                 ['label' => 'Midterm', 'icon' => 'fa-calendar-check', 'route' => 'appraisals.midterm', 'active' => request()->routeIs('appraisals.midterm*')],
                 ['label' => 'Year-End', 'icon' => 'fa-flag-checkered', 'route' => 'appraisals.yearend', 'active' => request()->routeIs('appraisals.yearend*')],
@@ -36,9 +35,14 @@
                 ['label' => 'Team Objectives', 'icon' => 'fa-users-cog', 'route' => 'objectives.team', 'active' => request()->routeIs('objectives.team')],
                 ['label' => 'Approvals', 'icon' => 'fa-check-double', 'route' => 'objectives.approvals', 'active' => request()->routeIs('objectives.approvals*')],
                 $role === 'line_manager'
+                    ? ['label' => 'Midterm Review', 'icon' => 'fa-calendar-check', 'route' => 'appraisal.midterm.list', 'active' => request()->routeIs('appraisal.midterm.*')]
+                    : null,
+                $role === 'line_manager'
+                    ? ['label' => 'Final Assessment', 'icon' => 'fa-flag-checkered', 'route' => 'appraisal.final.list', 'active' => request()->routeIs('appraisal.final.*')]
+                    : null,
+                $role === 'line_manager'
                     ? ['label' => 'Dept. Objectives', 'icon' => 'fa-building', 'route' => 'team.objectives.index', 'active' => request()->routeIs('team.objectives.*')]
                     : null,
-                ['label' => 'Team IDPs', 'icon' => 'fa-graduation-cap', 'route' => 'idps.index', 'params' => ['manager_id' => $user?->id], 'active' => request()->routeIs('idps.*')],
             ])),
         ];
     }

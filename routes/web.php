@@ -132,9 +132,25 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/appraisals/{appraisal_id}/sign', [App\Http\Controllers\Appraisal\AppraisalController::class, 'saveSignature'])->name('appraisals.sign');
 
         // HR Admin - keep appraisal-scoped actions here (reports/override)
-        Route::middleware('role:hr_admin')->group(function () {
+        Route::middleware('role:hr_admin,super_admin')->group(function () {
             Route::get('/reports', [App\Http\Controllers\Appraisal\AppraisalController::class, 'reports'])->name('reports.index');
             Route::post('/override-form/{appraisal_id}', [App\Http\Controllers\Appraisal\AppraisalController::class, 'override'])->name('appraisals.override');
+            Route::post('/appraisals/trigger-midterm/{user_id}', [App\Http\Controllers\Appraisal\AppraisalController::class, 'triggerMidterm'])->name('appraisals.trigger_midterm');
+            Route::post('/appraisals/trigger-all-midterms', [App\Http\Controllers\Appraisal\AppraisalController::class, 'triggerAllMidterms'])->name('appraisals.trigger_all_midterms');
+            Route::post('/appraisals/trigger-final/{appraisal_id}', [App\Http\Controllers\Appraisal\AppraisalController::class, 'triggerFinal'])->name('appraisals.trigger_final');
+        });
+
+        // Line Manager Appraisal Workflows
+        Route::middleware('role:line_manager,hr_admin,super_admin')->group(function () {
+            // Midterm
+            Route::get('/line-manager/midterm', [App\Http\Controllers\Appraisal\AppraisalController::class, 'midtermList'])->name('appraisal.midterm.list');
+            Route::get('/line-manager/midterm/conduct/{user_id}', [App\Http\Controllers\Appraisal\AppraisalController::class, 'conductMidterm'])->name('appraisal.midterm.conduct');
+            Route::post('/line-manager/midterm/store', [App\Http\Controllers\Appraisal\AppraisalController::class, 'storeMidterm'])->name('appraisal.midterm.store');
+
+            // Final Year
+            Route::get('/line-manager/final', [App\Http\Controllers\Appraisal\AppraisalController::class, 'finalList'])->name('appraisal.final.list');
+            Route::get('/line-manager/final/conduct/{user_id}', [App\Http\Controllers\Appraisal\AppraisalController::class, 'conductFinal'])->name('appraisal.final.conduct');
+            Route::post('/line-manager/final/store', [App\Http\Controllers\Appraisal\AppraisalController::class, 'storeFinal'])->name('appraisal.final.store');
         });
 
         // PIP management for HR / Super admin
