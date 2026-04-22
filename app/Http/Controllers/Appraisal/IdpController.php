@@ -15,6 +15,7 @@ use App\Models\DesignationMaster;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
+use App\Models\IndividualObjectiveMaster;
 use Illuminate\Support\Str;
 
 class IdpController extends Controller
@@ -69,36 +70,35 @@ class IdpController extends Controller
         }
 
         // For regular users, show only their own IDPs
-        $activeFY = FinancialYear::getActiveName();
+        $activeFY = FinancialYear::active();
+        $fyLabel = $activeFY?->label;
         $profileUser = $user;
-        $departments = Department::orderBy('name')->get(['id', 'name']);
-        if (Schema::hasTable('designation_masters')) {
-            $designationOptions = DesignationMaster::query()
-                ->where('is_active', true)
-                ->orderBy('title')
-                ->pluck('title')
-                ->values();
-        } else {
-            $designationOptions = User::query()
-                ->whereNotNull('designation')
-                ->where('designation', '!=', '')
-                ->orderBy('designation')
-                ->pluck('designation')
-                ->unique()
-                ->values();
+        
+        // 1. Get Employee's Individual Objectives (The 70%)
+        $myObjectives = Objective::where('user_id', $user->id)
+            ->where('financial_year', $fyLabel)
+            ->where('type', 'individual')
+            ->get();
+
+        // 2. Prepare Mapping: Objective Description => Skill Areas
+        $objectiveSkillMap = [];
+        foreach ($myObjectives as $obj) {
+            $master = IndividualObjectiveMaster::whereRaw('UPPER(title) = ?', [strtoupper($obj->description)])
+                ->with('skillAreas')
+                ->first();
+            
+            if ($master) {
+                $objectiveSkillMap[$obj->description] = $master->skillAreas->pluck('skill_area')->toArray();
+            }
         }
-        $idpsQuery = Idp::where('user_id', auth()->id())->orderByDesc('id');
-        if (Schema::hasColumn('idps', 'financial_year') && !empty($activeFY)) {
-            $idpsQuery->where('financial_year', $activeFY);
+
+        $idpsQuery = Idp::where('user_id', $user->id)->orderByDesc('id');
+        if (!empty($fyLabel)) {
+            $idpsQuery->where('financial_year', $fyLabel);
         }
         $idps = $idpsQuery->get();
-        $idpSkillAreaOptions = $this->activeSkillAreaOptions();
-        $idpDescriptionOptions = $this->employeeIdpDescriptionOptions((int) auth()->id(), $activeFY);
 
-        if ($idpSkillAreaOptions->isEmpty()) {
-            $idpSkillAreaOptions = $this->employeeIdpSkillAreaOptions((int) auth()->id(), $activeFY);
-        }
-        return view('appraisal.idp.index', compact('idps', 'activeFY', 'idpDescriptionOptions', 'idpSkillAreaOptions', 'profileUser', 'departments', 'designationOptions'));
+        return view('appraisal.idp.index', compact('idps', 'activeFY', 'profileUser', 'myObjectives', 'objectiveSkillMap'));
     }
 
     public function create()

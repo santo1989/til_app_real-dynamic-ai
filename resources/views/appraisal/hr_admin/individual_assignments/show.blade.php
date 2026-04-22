@@ -59,50 +59,53 @@
                 <table class="table table-bordered align-middle mb-0 excel-view-table">
                     <thead style="background-color: #1a6b3b; color: #ffffff;">
                         <tr>
-                            <th style="width: 60px;" class="text-center">Sl. #</th>
-                            <th style="width: 60%;">Objectives / Action Plans</th>
-                            <th style="width: 25%;">Timeline</th>
-                            <th style="width: 15%;">Weightage %</th>
+                            <th style="width: 60px;" class="text-center small fw-bold">SL</th>
+                            <th class="small fw-bold">Objectives / KPI / Action Plans</th>
+                            <th class="small fw-bold" style="width: 250px;">Certifying Authority / Dept</th>
+                            <th class="small fw-bold text-center" style="width: 200px;">Timeline</th>
+                            <th class="small fw-bold text-center" style="width: 150px;">Weightage %</th>
                         </tr>
                     </thead>
                     <tbody>
                         <!-- System Assigned Group (30%) -->
-                        <tr class="table-group-header">
-                            <td colspan="4" class="py-3 px-4 fw-bold" style="background-color: #e9f5ee; color: #1a6b3b;">
-                                <i class="fas fa-layer-group me-2"></i> Departmental / Team Objectives (Total 30%)
+                        <tr class="bg-light">
+                            <td colspan="5" class="py-2 px-4 fw-bold text-success" style="font-size: 0.85rem;">
+                                <i class="fas fa-building me-2"></i> Departmental / Team Targets (The 30%)
                             </td>
                         </tr>
-                        @forelse($deptObjectives as $index => $deptObj)
-                            <tr class="bg-white">
-                                <td class="text-center fw-bold">{{ $index + 1 }}</td>
-                                <td class="px-3">{{ $deptObj->master->title }}</td>
-                                <td class="px-3 italic text-muted">{{ $deptObj->timeline ?: 'N/A' }}</td>
-                                <td class="text-center fw-bold">{{ $deptObj->weightage }}%</td>
+                        @forelse($deptObjectives as $index => $assignment)
+                            <tr class="bg-light text-muted">
+                                <td class="text-center small fw-bold">{{ $loop->iteration }}</td>
+                                <td class="px-4 py-2 small fw-semibold text-dark">{{ $assignment->master->title }}</td>
+                                <td class="px-4 py-2 small fw-bold">{{ $assignment->department->name ?? 'SYSTEM' }}</td>
+                                <td class="bg-white text-center small italic text-muted border-start border-end">{{ $assignment->timeline ?: 'N/A' }}</td>
+                                <td class="text-center small fw-bold text-dark">{{ $assignment->weightage }}%</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center py-4 text-muted small italic">No departmental targets assigned yet.</td>
+                                <td colspan="5" class="text-center py-4 text-muted small italic">No departmental targets assigned yet.</td>
                             </tr>
                         @endforelse
 
                         <!-- Individual Assigned Group (70%) -->
                         <tr class="table-group-header">
-                            <td colspan="4" class="py-3 px-4 fw-bold" style="background-color: #e9f5ee; color: #1a6b3b;">
-                                <i class="fas fa-user-tag me-2"></i> Individual Objectives (Total 70%)
+                            <td colspan="5" class="py-2 px-4 fw-bold" style="background-color: #f0f7f3; color: #1a6b3b; font-size: 0.85rem;">
+                                <i class="fas fa-user me-2"></i> Individual Performance Targets (The 70%)
                             </td>
                         </tr>
                         @php $totalIndivWeight = 0; @endphp
-                        @forelse($individualObjectives as $index => $indivObj)
-                            @php $totalIndivWeight += $indivObj->weightage; @endphp
-                            <tr class="bg-white">
-                                <td class="text-center fw-bold">{{ $index + 1 }}</td>
-                                <td class="px-3">{{ $indivObj->description }}</td>
-                                <td class="px-3 text-muted italic">{{ $indivObj->target ?: 'N/A' }}</td>
-                                <td class="text-center fw-bold">{{ $indivObj->weightage }}%</td>
+                        @forelse($individualObjectives as $index => $obj)
+                            @php $totalIndivWeight += $obj->weightage; @endphp
+                            <tr>
+                                <td class="text-center small fw-bold">{{ $loop->iteration }}</td>
+                                <td class="px-4 py-2 small fw-bold text-dark text-uppercase">{{ $obj->description }}</td>
+                                <td class="px-4 py-2 small fw-bold text-muted text-center">-</td>
+                                <td class="px-4 py-2 small text-center text-muted border-start border-end">{{ $obj->target ?: 'N/A' }}</td>
+                                <td class="text-center small fw-bold text-dark">{{ $obj->weightage }}%</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center py-5 text-muted small italic">
+                                <td colspan="5" class="text-center py-5 text-muted small italic">
                                     <i class="fas fa-hourglass-start d-block mb-2 fa-2x opacity-25"></i>
                                     Employee has not set individual objectives yet.
                                 </td>

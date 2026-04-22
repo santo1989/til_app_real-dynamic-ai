@@ -18,11 +18,11 @@ class ObjectiveSettingRequest extends FormRequest
         // Support both bulk submission (objectives array) and single-object forms.
         if ($this->has('objectives')) {
             return [
-                'objectives' => 'required|array|min:3|max:9',
+                'objectives' => 'required|array|min:1|max:15',
                 'objectives.*.type' => 'required|string|in:departmental,individual',
                 'objectives.*.description' => 'required|string',
                 'objectives.*.weightage' => 'required|integer',
-                'objectives.*.target' => 'required|string',
+                'objectives.*.target' => 'nullable|string',
                 'date_of_setting' => 'nullable|date',
                 // optional IDP payload that may accompany objective submissions
                 'idp' => 'nullable|array',
@@ -60,12 +60,7 @@ class ObjectiveSettingRequest extends FormRequest
                 foreach ($objectives as $idx => $o) {
                     $type = (string) ($o['type'] ?? '');
                     $weight = (int) ($o['weightage'] ?? 0);
-                    if ($type === 'individual' && !in_array($weight, $individualAllowed, true)) {
-                        $v->errors()->add("objectives.{$idx}.weightage", 'Individual objective weightage must be one of: ' . implode(', ', $individualAllowed) . ' %.');
-                    }
-                    if ($type === 'departmental' && !in_array($weight, $departmentalAllowed, true)) {
-                        $v->errors()->add("objectives.{$idx}.weightage", 'Departmental objective weightage must be one of: ' . implode(', ', $departmentalAllowed) . ' %.');
-                    }
+                    // Removed fixed weightage list constraint for flexibility
                 }
 
                 $total = array_sum(array_column($objectives, 'weightage'));
@@ -81,8 +76,7 @@ class ObjectiveSettingRequest extends FormRequest
                         $indCount++;
                     }
                 }
-                // If there are departmental objectives present, keep previous behaviour:
-                // total weight of all objectives must equal 100% and departmental portion must match configured departmental total
+                
                 if ($deptCount > 0) {
                     $configuredDeptTotal = config('appraisal.departmental_total', 30);
                     if ($deptTotal !== $configuredDeptTotal) {
@@ -93,27 +87,25 @@ class ObjectiveSettingRequest extends FormRequest
                         $v->errors()->add('objectives', 'Total weightage of all objectives must equal 100%.');
                     }
 
-                    // Enforce departmental objectives count: 2-3 when departmental objectives are present
                     $deptMin = config('appraisal.departmental_min_count', 2);
                     $deptMax = config('appraisal.departmental_max_count', 3);
                     if ($deptCount < $deptMin || $deptCount > $deptMax) {
                         $v->errors()->add('objectives', "Departmental/Team objectives must be between {$deptMin} and {$deptMax} items.");
                     }
 
-                    $indMin = config('appraisal.individual_min', 3);
-                    $indMax = config('appraisal.individual_max', 6);
+                    $indMin = 1; // Relaxed from 3
+                    $indMax = config('appraisal.individual_max', 10); // Relaxed
                     if ($indCount < $indMin || $indCount > $indMax) {
                         $v->errors()->add('objectives', "Individual objectives must be between {$indMin} and {$indMax}.");
                     }
                 } else {
-                    // Individual-only submissions: enforce configured total (default 70%) and individual count between 3 and 6
                     $requiredTotal = config('appraisal.individual_total', 70);
                     if ($total !== $requiredTotal) {
                         $v->errors()->add('objectives', "Total weightage of individual objectives must equal {$requiredTotal}%.");
                     }
 
-                    $indMin = config('appraisal.individual_min', 3);
-                    $indMax = config('appraisal.individual_max', 6);
+                    $indMin = 1; // Relaxed
+                    $indMax = config('appraisal.individual_max', 10);
                     if ($indCount < $indMin || $indCount > $indMax) {
                         $v->errors()->add('objectives', "Individual objectives must be between {$indMin} and {$indMax}.");
                     }

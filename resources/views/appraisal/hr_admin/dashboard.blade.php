@@ -152,15 +152,60 @@
                             </div>
                         @endforeach
                     </div>
+
+                    <!-- Premium Actionable Alerts -->
+                    <div class="mt-5 pt-4 border-top">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h6 class="fw-bold mb-0" style="color: #1e293b;">Action Hub</h6>
+                                <p class="text-muted smaller mb-0">Tasks requiring your attention</p>
+                            </div>
+                            <span class="badge rounded-pill px-3 py-2" style="background-color: #1a6b3b; color: #fff; font-size: 0.7rem; box-shadow: 0 4px 6px -1px rgba(26, 107, 59, 0.2);">3 Pending</span>
+                        </div>
+
+                        <div class="space-y-3">
+                            <!-- Alert Item 1 -->
+                            <div class="p-3 mb-3 border rounded-4 bg-white transition-hover shadow-sm-hover" style="border-left: 5px solid #1a6b3b !important;">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="fw-bold mb-1" style="color: #334155; font-size: 0.85rem;">IDP Review: Sajid Ahmed</div>
+                                        <div class="small text-muted" style="line-height: 1.4;">Line Manager approved. Please finalize <strong>Improvement Indicators</strong> to complete the cycle.</div>
+                                    </div>
+                                    <span class="text-xs fw-medium px-2 py-1 rounded-pill bg-light" style="font-size: 0.65rem; color: #64748b;">12m ago</span>
+                                </div>
+                                <div class="mt-3 d-flex gap-2">
+                                    <a href="#" class="btn btn-sm py-1 px-3 rounded-pill fw-bold" style="background-color: #1a6b3b; color: white; font-size: 0.7rem;">Process Now</a>
+                                    <button class="btn btn-sm btn-link text-muted text-decoration-none py-0" style="font-size: 0.7rem;">Later</button>
+                                </div>
+                            </div>
+
+                            <!-- Alert Item 2 -->
+                            <div class="p-3 mb-3 border rounded-4 bg-white transition-hover shadow-sm-hover" style="border-left: 5px solid #10b981 !important;">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="fw-bold mb-1" style="color: #334155; font-size: 0.85rem;">Self-Assessment: Maria Sultana</div>
+                                        <div class="small text-muted">Submission received. Ready for departmental validation.</div>
+                                    </div>
+                                    <span class="text-xs fw-medium px-2 py-1 rounded-pill bg-light" style="font-size: 0.65rem; color: #64748b;">1h ago</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-4 pt-2">
+                            <a href="#" class="text-success small fw-bold text-decoration-none" style="color: #1a6b3b !important; letter-spacing: 0.02em;">
+                                VIEW ALL WORKFLOW TASKS <i class="fas fa-arrow-right ms-2"></i>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Quick Actions -->
+        <!-- Quick Actions & Activity -->
         <div class="col-12 col-xl-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-transparent border-0 pt-4 px-4">
-                    <h6 class="fw-bold mb-0">Quick Operations</h6>
+            <div class="card border-0 shadow-sm mb-4 overflow-hidden rounded-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                    <h6 class="fw-bold text-dark mb-0">Operational Shortcuts</h6>
                 </div>
                 <div class="card-body p-4 pt-2">
                     <div class="d-grid gap-2">

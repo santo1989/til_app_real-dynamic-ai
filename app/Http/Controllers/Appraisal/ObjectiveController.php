@@ -177,52 +177,31 @@ class ObjectiveController extends Controller
     }
     public function myObjectives()
     {
-        /** @var User $user */
-        /** @var User $user */
         $user = auth()->user();
-        $activeFY = FinancialYear::getActiveName();
-        if (empty($activeFY)) {
-            $objectives = collect();
-            $fyLockedMessage = $this->missingActiveFinancialYearMessage();
-            $individualObjectiveOptions = $this->individualObjectiveOptions();
-            $departmentalObjectiveOptions = $this->departmentalObjectiveOptions($user->department_id ?? null);
-            return view('appraisal.objectives.my', compact('objectives', 'activeFY', 'fyLockedMessage', 'individualObjectiveOptions', 'departmentalObjectiveOptions'));
+        $activeFy = FinancialYear::active();
+        
+        if (!$activeFy) {
+            return redirect()->route('dashboard')->with('error', 'No active financial year found.');
         }
-        $objectives = Objective::where('user_id', $user->id)
-            ->where('financial_year', $activeFY)
+
+        // 1. Inherited Departmental/Team Objectives (The 30%)
+        $deptObjectives = \App\Models\DepartmentalObjectiveAssignment::where('financial_year_id', $activeFy->id)
+            ->where('department_id', $user->department_id)
+            ->where(function($q) use ($user) {
+                $q->whereNull('team_id')->orWhere('team_id', $user->team_id);
+            })
+            ->with(['master', 'department'])
             ->get();
-        $individualObjectiveOptions = $this->individualObjectiveOptions();
 
-        // Merge current objective descriptions with options to ensure editing shows existing values
-        $currentDescriptions = $objectives
+        // 2. Existing Individual Objectives (The 70%)
+        $individualObjectives = Objective::where('user_id', $user->id)
+            ->where('financial_year', $activeFy->label)
             ->where('type', 'individual')
-            ->pluck('description')
-            ->filter()
-            ->map(fn($d) => trim($d))
-            ->unique()
-            ->values();
-        $individualObjectiveOptions = collect($individualObjectiveOptions)
-            ->concat($currentDescriptions)
-            ->unique()
-            ->sort()
-            ->values();
+            ->get();
 
-        $departmentalObjectiveOptions = $this->departmentalObjectiveOptions($user->department_id ?? null);
-        // Merge departmental descriptions too
-        $currentDeptDescriptions = $objectives
-            ->where('type', 'departmental')
-            ->pluck('description')
-            ->filter()
-            ->map(fn($d) => trim($d))
-            ->unique()
-            ->values();
-        $departmentalObjectiveOptions = collect($departmentalObjectiveOptions)
-            ->concat($currentDeptDescriptions)
-            ->unique()
-            ->sort()
-            ->values();
+        $masters = IndividualObjectiveMaster::where('is_active', true)->orderBy('title')->get();
 
-        return view('appraisal.objectives.my', compact('objectives', 'activeFY', 'individualObjectiveOptions', 'departmentalObjectiveOptions'));
+        return view('appraisal.objectives.my', compact('user', 'activeFy', 'deptObjectives', 'individualObjectives', 'masters'));
     }
 
     public function myObjectiveForm()
@@ -326,7 +305,7 @@ class ObjectiveController extends Controller
                 'description' => $obj['description'],
                 'weightage' => (int) $obj['weightage'],
                 'target' => $obj['target'],
-                'status' => 'pending',
+                'status' => 'draft',
                 'financial_year' => $fyName,
                 'created_by' => auth()->id(),
             ]);
@@ -535,7 +514,7 @@ class ObjectiveController extends Controller
 
         $query = Objective::with('user')
             ->where('type', 'individual')
-            ->where('status', 'pending')
+            ->where('status', 'draft')
             ->whereHas('user', function ($uq) use ($user) {
                 $uq->where('line_manager_id', $user->id);
             });
@@ -563,7 +542,7 @@ class ObjectiveController extends Controller
         if (!empty($userIds)) {
             $rows = Objective::select('user_id', 'status', DB::raw('count(*) as cnt'))
                 ->whereIn('user_id', $userIds)
-                ->whereIn('status', ['pending', 'set', 'rejected'])
+                ->whereIn('status', ['draft', 'set'])
                 ->groupBy('user_id', 'status')
                 ->get();
             foreach ($rows as $r) {

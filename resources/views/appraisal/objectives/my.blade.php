@@ -1,293 +1,247 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="card">
-        <div class="card-body">
-            <h5>My Objectives </h5>
-            @if (!empty($fyLockedMessage ?? null))
-                <div class="alert alert-warning">
-                    {{ $fyLockedMessage }}
-                    Please contact Admin / HR Admin / Board to activate a financial year first.
+<div class="container-fluid py-4" x-data="objectiveSelfService()">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center justify-content-between pb-3">
+                <div>
+                    <h2 class="fw-bold mb-1" style="color: #1a6b3b;">My Performance Objectives: {{ $activeFy->label }}</h2>
+                    <div class="text-muted small">Fulfill your 70% individual targets to complete your appraisal profile</div>
                 </div>
-            @endif
+            </div>
+        </div>
+    </div>
 
-            @if ($errors->any())
-                <div class="alert alert-danger">
-                    <strong>Validation Errors:</strong>
-                    <ul class="mb-0">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
+    @include('components.alert')
+
+    <form method="POST" action="{{ route('objectives.submit') }}" @submit.prevent="submitForm">
+        @csrf
+        <!-- Employee Context (Two Column) -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-6">
+                <div class="p-4 bg-white rounded shadow-sm h-100 border">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Employee Name</label>
+                        <div class="h5 fw-bold text-dark mb-0">{{ $user->name }}</div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Designation / ID</label>
+                        <div class="h6 fw-bold text-dark mb-0">{{ $user->designation ?: 'Staff' }} ({{ $user->employee_id }})</div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Department / Team</label>
+                        <div class="h6 fw-bold text-dark mb-0">{{ $user->department->name ?? 'N/A' }} {{ $user->team ? '('.$user->team->name.')' : '' }}</div>
+                    </div>
                 </div>
-            @endif
+            </div>
+            <div class="col-md-6">
+                <div class="p-4 bg-white rounded shadow-sm h-100 border">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Cycle Progress</label>
+                        <div class="progress mb-2" style="height: 10px; border-radius: 20px;">
+                            <div class="progress-bar bg-success" role="progressbar" :style="'width: ' + currentTotalWeight + '%'" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div class="d-flex justify-content-between small fw-bold">
+                            <span class="text-muted">Total Weightage</span>
+                            <span :class="currentTotalWeight === 100 ? 'text-success' : 'text-danger'" x-text="currentTotalWeight + '% / 100%'"></span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-light rounded border text-center">
+                        <span class="text-muted smaller fw-bold ls-1 me-3 uppercase">Status</span>
+                        <span class="badge" :class="currentTotalWeight === 100 ? 'bg-success' : 'bg-warning'" x-text="currentTotalWeight === 100 ? 'Ready to Deploy' : 'Pending Individual Targets'"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            <form method="POST" action="{{ route('objectives.submit') }}">
-                @csrf
-                @include('components.alert')
-                <table class="table">
-                    <thead>
+        <!-- Master Table: Combined View -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5 border">
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0 excel-table">
+                    <thead style="background-color: #f8fbff; color: #1a6b3b;">
                         <tr>
-                            <th>#</th>
-                            <th>Description</th>
-                            <th>Weightage</th>
-                            <th>Target</th>
-                            <th>Remove</th>
+                            <th style="width: 60px;" class="text-center">SL</th>
+                            <th style="width: 35%;">Objectives / KPI / Action Plans</th>
+                            <th style="width: 25%;">Certifying Authority / Department</th>
+                            <th>Timeline</th>
+                            <th style="width: 150px;" class="text-center">Weightage %</th>
+                            <th style="width: 50px;"></th>
                         </tr>
                     </thead>
-                    <tbody id="objectives-body">
-                        @php
-                            $oldObjectives = old('objectives');
-                            $rows = is_array($oldObjectives)
-                                ? collect($oldObjectives)
-                                : collect($objectives)->map(function ($o) {
-                                    return [
-                                        'description' => $o->description,
-                                        'weightage' => $o->weightage,
-                                        'target' => $o->target,
-                                    ];
-                                });
-                        @endphp
-                        @forelse($rows as $i => $row)
+                    <tbody>
+                        <!-- Section 1: Departmental Targets (Read Only - 30%) -->
+                        <tr class="bg-light">
+                            <td colspan="6" class="py-3 px-4 fw-bold" style="color: #1a6b3b;">
+                                <i class="fas fa-building me-2"></i> System Assigned Departmental Targets (Fixed 30%)
+                            </td>
+                        </tr>
+                        @foreach($deptObjectives as $index => $dept)
+                        <tr class="bg-light text-muted opacity-75">
+                            <td class="text-center small fw-bold">{{ $index + 1 }}</td>
+                            <td class="px-4 py-3 h6 mb-0">{{ $dept->master->title }}</td>
+                            <td class="px-4 py-3 small fw-bold">{{ $dept->department->name ?? 'SYSTEM' }}</td>
+                            <td class="px-4 small italic">{{ $dept->timeline ?: 'N/A' }}</td>
+                            <td class="text-center fw-bold">{{ $dept->weightage }}%</td>
+                            <td></td>
+                        </tr>
+                        @endforeach
+
+                        <!-- Section 2: Individual Targets (Editable - 70%) -->
+                        <tr class="table-group-header">
+                            <td colspan="6" class="py-3 px-4 fw-bold" style="background-color: #f0f7f3; color: #1a6b3b;">
+                                <i class="fas fa-user-edit me-2"></i> My Individual Targets (Fulfill 70%)
+                            </td>
+                        </tr>
+                        <template x-for="(row, index) in rows" :key="index">
                             <tr>
-                                <td>{{ $i + 1 }}</td>
-                                <td>
-                                    <input type="hidden" name="objectives[{{ $i }}][type]" value="individual" />
-                                    <select name="objectives[{{ $i }}][description]" class="form-control"
-                                        required>
-                                        <option value="">Select objective</option>
-                                        @if (!empty($individualObjectiveOptions ?? null) && count($individualObjectiveOptions) > 0)
-                                            <optgroup label="Individual Objectives">
-                                                @foreach ($individualObjectiveOptions as $opt)
-                                                    @php
-                                                        $currentValue = $row['description'] ?? '';
-                                                        // Robust comparison: normalize whitespace and case
-                                                        $isSelected =
-                                                            strtolower(
-                                                                trim(preg_replace('/\s+/', ' ', $currentValue)),
-                                                            ) === strtolower(trim(preg_replace('/\s+/', ' ', $opt)));
-                                                    @endphp
-                                                    <option value="{{ $opt }}" {{ $isSelected ? 'selected' : '' }}>
-                                                        {{ \Illuminate\Support\Str::ucfirst(\Illuminate\Support\Str::lower($opt)) }}
-                                                    </option>
-                                                @endforeach
-                                            </optgroup>
-                                        @endif
-                                        @php
-                                            $normalizedCurrent = strtolower(
-                                                trim(preg_replace('/\s+/', ' ', (string) ($row['description'] ?? ''))),
-                                            );
-                                            $optionExists = collect($individualObjectiveOptions ?? [])->contains(
-                                                function ($opt) use ($normalizedCurrent) {
-                                                    return strtolower(
-                                                        trim(preg_replace('/\s+/', ' ', (string) $opt)),
-                                                    ) === $normalizedCurrent;
-                                                },
-                                            );
-                                        @endphp
-                                        @if (!empty($row['description']) && !$optionExists)
-                                            <option value="{{ $row['description'] }}" selected>{{ $row['description'] }}
-                                            </option>
-                                        @endif
-                                    </select>
-                                </td>
-                                <td>
-                                    <select name="objectives[{{ $i }}][weightage]" class="form-control"
-                                        required>
-                                        @foreach ([10, 15, 20, 25] as $w)
-                                            @php
-                                                $currentWeight = $row['weightage'] ?? '';
-                                            @endphp
-                                            <option value="{{ $w }}"
-                                                @if ($currentWeight == $w) selected @endif>{{ $w }}
-                                            </option>
+                                <td class="text-center fw-bold align-middle" x-text="index + 1"></td>
+                                <td class="p-0">
+                                    <select x-model="row.description" class="form-select border-0 shadow-none h-100 excel-input" required>
+                                        <option value="">-- Search & Select Objective --</option>
+                                        @foreach($masters as $m)
+                                            <option value="{{ $m->title }}">{{ $m->title }}</option>
                                         @endforeach
                                     </select>
                                 </td>
-                                <td><input type="text" name="objectives[{{ $i }}][target]"
-                                        value="{{ $row['target'] ?? '' }}" class="form-control" required /></td>
-                                <td>
-                                    <button type="button" class="btn btn-sm btn-outline-danger remove-row">Remove</button>
+                                <td class="p-0">
+                                    <input type="text" class="form-control border-0 shadow-none h-100 excel-input bg-light" disabled placeholder="N/A">
+                                </td>
+                                <td class="p-0">
+                                    <input type="text" x-model="row.target" class="form-control border-0 shadow-none h-100 excel-input" placeholder="e.g. Q3 2026">
+                                </td>
+                                <td class="p-0">
+                                    <input type="number" x-model.number="row.weightage" class="form-control border-0 shadow-none h-100 excel-input text-center fw-bold" min="1" max="70">
+                                </td>
+                                <td class="text-center align-middle">
+                                    <button type="button" @click="removeRow(index)" class="btn btn-link text-danger p-0 shadow-none" :disabled="rows.length <= 1">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
                                 </td>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5">No objectives found. Add below.</td>
-                            </tr>
-                        @endforelse
+                        </template>
                     </tbody>
+                    <tfoot>
+                        <tr class="bg-light">
+                            <td colspan="4" class="text-end fw-bold py-3 text-uppercase small text-muted">Individual Target Subtotal</td>
+                            <td class="text-center py-3">
+                                <div class="h5 mb-0 fw-bold" :class="totalIndivWeight === 70 ? 'text-success' : 'text-danger'" x-text="totalIndivWeight + '%'"></div>
+                            </td>
+                            <td></td>
+                        </tr>
+                        <tr style="background-color: #1a6b3b; color: white;">
+                            <td colspan="4" class="text-end fw-bold py-3 text-uppercase small">Grand Total Weightage (Goal: 100%)</td>
+                            <td class="text-center py-3">
+                                <div class="h4 mb-0 fw-bold" x-text="currentTotalWeight + '%'"></div>
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
                 </table>
-
-                <button type="button" id="add-row" class="btn btn-sm btn-outline-secondary"
-                    @if (!empty($fyLockedMessage ?? null)) disabled @endif>Add Objective</button>
-                <button type="submit" id="save-btn" class="btn btn-outline-primary"
-                    @if (!empty($fyLockedMessage ?? null)) disabled @endif>Save</button>
-                <a href="{{ route('objectives.my.form') }}" class="btn btn-outline-success"
-                    @if ($objectives->count() === 0) aria-disabled="true" style="pointer-events:none;opacity:.6;" @endif>
-                    View Saved Form
-                </a>
-                <a href="{{ route('idp.index') }}" class="btn btn-outline-info">Manage My IDPs</a>
-                <a href="{{ route('dashboard') }}" class="btn btn-outline-dark">Back</a>
-            </form>
-            @php
-                $indMin = (int) config('appraisal.individual_min', 3);
-                $indMax = (int) config('appraisal.individual_max', 6);
-                $indTotal = (int) config('appraisal.individual_total', 70);
-            @endphp
-            <div id="objective-validation-note" class="mt-2 text-muted">Total objectives allowed:
-                {{ $indMin }}–{{ $indMax }}. Weightages must sum to
-                {{ $indTotal }}%.</div>
+            </div>
         </div>
-    </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            if (typeof $ === 'undefined') {
-                alert('jQuery is not loaded. Please contact admin.');
+
+        <!-- Submission Section -->
+        <div class="d-flex justify-content-between align-items-center pb-5">
+            <button type="button" @click="addRow" class="btn btn-light border fw-bold px-4 shadow-sm" :disabled="totalIndivWeight >= 70">
+                <i class="fas fa-plus me-2 text-success"></i> Add Objective
+            </button>
+            <div class="d-flex gap-3">
+                <a href="{{ route('dashboard') }}" class="btn btn-light border px-5 fw-bold">Cancel</a>
+                <button type="submit" class="btn btn-dark px-5 fw-bold shadow-sm" :disabled="totalIndivWeight !== 70">
+                    <i class="fas fa-cloud-upload-alt me-2"></i> Submit Plan for Approval
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+    .ls-1 { letter-spacing: 0.05em; }
+    .smaller { font-size: 0.75rem; }
+    .excel-input { border-radius: 0; padding: 15px 20px; font-size: 0.95rem; }
+    .excel-input:focus { background-color: #f8fbff; outline: 3px solid rgba(26, 107, 59, 0.15); z-index: 10; }
+    .excel-table td { vertical-align: middle; }
+    .excel-table thead th { border-bottom: 2px solid #1a6b3b !important; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; }
+    .italic { font-style: italic; }
+</style>
+
+<script>
+@php
+    $initialRows = $individualObjectives->count() > 0 
+        ? $individualObjectives->map(function($o) {
+            return ['description' => $o->description, 'target' => $o->target, 'weightage' => $o->weightage];
+          }) 
+        : [['description' => '', 'target' => '', 'weightage' => 10]];
+@endphp
+
+function objectiveSelfService() {
+    return {
+        rows: @json($initialRows),
+        
+        deptTotal: 30, // Fixed based on your business rule
+
+        get totalIndivWeight() {
+            return this.rows.reduce((sum, row) => sum + (parseInt(row.weightage) || 0), 0);
+        },
+
+        get currentTotalWeight() {
+            return this.deptTotal + this.totalIndivWeight;
+        },
+
+        addRow() {
+            if (this.totalIndivWeight < 70) {
+                this.rows.push({ description: '', target: '', weightage: 10 });
+            }
+        },
+
+        removeRow(index) {
+            if (this.rows.length > 1) {
+                this.rows.splice(index, 1);
+            }
+        },
+
+        submitForm() {
+            if (this.totalIndivWeight !== 70) {
+                alert('Your individual targets must total exactly 70%');
                 return;
             }
-            let idx = $('#objectives-body tr').filter(function() {
-                return $(this).find('select[name*="[description]"]').length > 0;
-            }).length;
-            const requiredTotal = {{ (int) config('appraisal.individual_total', 70) }};
-            const minCount = {{ (int) config('appraisal.individual_min', 3) }};
-            const maxCount = {{ (int) config('appraisal.individual_max', 6) }};
-            const objectiveOptionGroups = `
-                @if (!empty($individualObjectiveOptions ?? null) && count($individualObjectiveOptions) > 0)
-                    <optgroup label="Individual Objectives">
-                        @foreach ($individualObjectiveOptions as $opt)
-                            <option value="{{ $opt }}">{{ \Illuminate\Support\Str::ucfirst(\Illuminate\Support\Str::lower($opt)) }}</option>
-                        @endforeach
-                    </optgroup>
-                @endif
-            `;
 
-            function markFieldState($field, isInvalid) {
-                $field.toggleClass('is-invalid', isInvalid);
-            }
-
-            function setFieldError($field, message) {
-                let $feedback = $field.siblings('.inline-field-error');
-                if (!$feedback.length) {
-                    $feedback = $('<div class="invalid-feedback inline-field-error d-block"></div>');
-                    $field.after($feedback);
-                }
-
-                if (message) {
-                    $feedback.text(message).show();
-                } else {
-                    $feedback.text('').hide();
-                }
-            }
-
-            function updateValidation() {
-                const rows = $('#objectives-body tr').filter(function() {
-                    return $(this).find('select[name*="weightage"]').length > 0;
-                });
-                let total = 0;
-                let valid = true;
-                rows.each(function() {
-                    const $row = $(this);
-                    const $desc = $row.find('select[name*="[description]"]');
-                    const $target = $row.find('input[name*="[target]"]');
-                    const $weightSel = $row.find('select[name*="weightage"]');
-
-                    const descMissing = !String($desc.val() || '').trim();
-                    const targetMissing = !String($target.val() || '').trim();
-                    const weightVal = parseInt($weightSel.val(), 10);
-                    const weightMissing = Number.isNaN(weightVal);
-
-                    markFieldState($desc, descMissing);
-                    markFieldState($target, targetMissing);
-                    markFieldState($weightSel, weightMissing);
-
-                    setFieldError($desc, descMissing ? 'Description is required.' : '');
-                    setFieldError($target, targetMissing ? 'Target is required.' : '');
-                    setFieldError($weightSel, weightMissing ? 'Weightage is required.' : '');
-
-                    const rowInvalid = descMissing || targetMissing || weightMissing;
-                    $row.toggleClass('table-warning', rowInvalid);
-
-                    if (rowInvalid) valid = false;
-
-                    const weight = parseInt($weightSel.val(), 10);
-                    if (!isNaN(weight)) total += weight;
-                });
-                const weightageValid = (total === requiredTotal);
-                // keep full form validation message for guidance
-                if (rows.length < minCount || rows.length > maxCount) valid = false;
-                if (!weightageValid) valid = false;
-
-                // Requested behavior:
-                // - Save enabled only when total weightage is valid (== requiredTotal)
-                // - Add disabled when total weightage is valid
-                $('#save-btn').prop('disabled', !weightageValid);
-                $('#add-row').prop('disabled', weightageValid || rows.length >= maxCount);
-
-                const note = $('#objective-validation-note');
-                if (valid) {
-                    note.removeClass('text-danger').addClass('text-success')
-                        .text(`Ready to save. Weightage total is valid (${total}% / ${requiredTotal}%).`);
-                } else {
-                    note.removeClass('text-success').addClass('text-danger')
-                        .text(
-                            `Validation: weightage is valid only when total = ${requiredTotal}% (current: ${total}%). Objectives must also be ${minCount}–${maxCount}.`
-                        );
-                }
-
-            }
-
-            $('#add-row').on('click', function() {
-                // prevent adding if disabled (double-safety)
-                if ($(this).prop('disabled')) return;
-
-                const placeholderRow = $('#objectives-body tr').filter(function() {
-                    return $(this).find('select[name*="weightage"]').length === 0;
-                });
-                if (placeholderRow.length) {
-                    placeholderRow.remove();
-                }
-
-                $('#objectives-body').append(`
-                <tr>
-                <td>${idx+1}</td>
-                <td>
-                    <input type="hidden" name="objectives[${idx}][type]" value="individual" />
-                    <select name="objectives[${idx}][description]" class="form-control" required>
-                        <option value="">Select objective</option>
-                        ${objectiveOptionGroups}
-                    </select>
-                </td>
-                <td>
-                    <select name="objectives[${idx}][weightage]" class="form-control" required>
-                        <option value="">Select</option>
-                        <option value="10">10</option>
-                        <option value="15">15</option>
-                        <option value="20">20</option>
-                        <option value="25">25</option>
-                    </select>
-                </td>
-                <td><input type="text" name="objectives[${idx}][target]" class="form-control" required /></td>
-                <td><button type="button" class="btn btn-sm btn-outline-danger remove-row">Remove</button></td>
-            </tr>
-        `);
-                idx++;
-                updateValidation();
+            const formData = new FormData();
+            formData.append('_token', '{{ csrf_token() }}');
+            
+            this.rows.forEach((row, index) => {
+                formData.append(`objectives[${index}][type]`, 'individual');
+                formData.append(`objectives[${index}][description]`, row.description);
+                formData.append(`objectives[${index}][target]`, row.target);
+                formData.append(`objectives[${index}][weightage]`, row.weightage);
+                formData.append(`objectives[${index}][financial_year]`, '{{ $activeFy->label }}');
             });
 
-            $('#objectives-body').on('click', '.remove-row', function() {
-                $(this).closest('tr').remove();
-                updateValidation();
+            fetch('{{ route('objectives.submit') }}', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(async r => {
+                if (r.ok) {
+                    window.location.href = "{{ route('dashboard') }}";
+                } else {
+                    const data = await r.json();
+                    let errorMsg = 'Submission failed:\n';
+                    if (data.errors) {
+                        Object.keys(data.errors).forEach(key => {
+                            errorMsg += `- ${data.errors[key][0]}\n`;
+                        });
+                    } else {
+                        errorMsg += data.message || 'Unknown error';
+                    }
+                    alert(errorMsg);
+                    console.error('Validation errors:', data.errors);
+                }
             });
-
-            $('#objectives-body').on('change', 'select[name*="weightage"]', updateValidation);
-            $('#objectives-body').on('input', 'input', updateValidation);
-
-            updateValidation();
-
-            @if (!empty($fyLockedMessage ?? null))
-                $('#save-btn').prop('disabled', true);
-                $('#add-row').prop('disabled', true);
-            @endif
-        });
-    </script>
+        }
+    }
+}
+</script>
 @endsection
