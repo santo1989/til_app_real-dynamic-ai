@@ -103,10 +103,13 @@
                                         <input type="number" x-model.number="row.weightage" class="form-control border-0 shadow-none h-100 excel-input text-center fw-bold">
                                     </td>
                                     <td class="p-0">
-                                        <select x-model="row.certifying_authority_role" class="form-select border-0 shadow-none h-100 excel-input">
-                                            <option value="line_manager">Immediate Line Manager</option>
-                                            <option value="dept_head">Department Head</option>
-                                            <option value="hr_manager">HR Manager</option>
+                                        <select x-model="row.certifying_authority_user_id" class="form-select border-0 shadow-none h-100 excel-input" required>
+                                            <option value="">-- Select Authority --</option>
+                                            @foreach($users as $u)
+                                                <option value="{{ $u->id }}">
+                                                    {{ $u->name }} ({{ $u->department->name ?? 'No Dept' }} - {{ $u->role }})
+                                                </option>
+                                            @endforeach
                                         </select>
                                     </td>
                                     <td class="text-center align-middle">
@@ -162,7 +165,7 @@
                     'objective_master_id' => $a->objective_master_id,
                     'timeline' => $a->timeline,
                     'weightage' => $a->weightage,
-                    'certifying_authority_role' => $a->certifying_authority_role,
+                    'certifying_authority_user_id' => $a->certifying_authority_user_id,
                 ];
             });
         @endphp
@@ -177,7 +180,7 @@
                 },
 
                 addRow() {
-                    this.rows.push({ objective_master_id: '', timeline: '', weightage: 0, certifying_authority_role: 'line_manager' });
+                    this.rows.push({ objective_master_id: '', timeline: '', weightage: 0, certifying_authority_user_id: '' });
                 },
 
                 removeRow(index) {
@@ -201,7 +204,7 @@
                         formData.append(`rows[${index}][objective_master_id]`, row.objective_master_id);
                         formData.append(`rows[${index}][timeline]`, row.timeline);
                         formData.append(`rows[${index}][weightage]`, row.weightage);
-                        formData.append(`rows[${index}][certifying_authority_role]`, row.certifying_authority_role);
+                        formData.append(`rows[${index}][certifying_authority_user_id]`, row.certifying_authority_user_id);
                     });
 
                     fetch('{{ route('departmental-objective-assignments.update', $department->id) }}', {

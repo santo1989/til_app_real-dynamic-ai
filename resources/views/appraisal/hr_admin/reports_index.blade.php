@@ -4,7 +4,7 @@
         <div class="card-header bg-info text-white d-flex justify-content-between align-items-center flex-wrap">
             <h5 class="mb-0"><i class="fas fa-file-alt"></i> Reports</h5>
             <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-light text-dark">
+                 <span class="badge bg-light text-dark">
                     <i class="fas fa-sync-alt"></i> Auto-refresh: 30s
                 </span>
                 <button class="btn btn-sm btn-outline-light" data-manual-refresh="reports-container"

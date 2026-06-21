@@ -9,6 +9,7 @@ class DepartmentSeeder extends Seeder
 {
     public function run()
     {
+        Department::create(['name' => 'Management']);
         Department::create(['name' => 'Manufacturing']);
         Department::create(['name' => 'Sales']);
         Department::create(['name' => 'HR']);

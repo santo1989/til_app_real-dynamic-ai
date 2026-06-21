@@ -33,10 +33,9 @@
 
                 <x-ui.form-field name="name" label="Department Name" required="true" col="col-12 col-lg-6"
                     value="{{ $department->name }}" placeholder="Enter department name" />
-                <x-ui.form-field name="code" label="Department Code" col="col-12 col-lg-6"
-                    value="{{ $department->code ?? '' }}" placeholder="e.g., ITMIS" />
+                
                 <x-ui.form-select name="head_id" label="Department Head" col="col-12 col-lg-6"
-                    placeholder="-- Select Head --" :options="$headOptions" selected="{{ $department->head_id }}" />
+                    placeholder="-- Select Head --" :options="$headOptions" :selected="$department->head_id" />
             </div>
 
             <div class="d-flex justify-content-end gap-2 mt-4">

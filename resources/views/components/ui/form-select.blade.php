@@ -46,7 +46,7 @@
                     $optText = is_array($text) ? ($text['label'] ?? ($text['text'] ?? '')) : $text;
                 }
             @endphp
-            <option value="{{ $optValue }}" @selected((string) $resolvedSelected === (string) $optValue)>{{ $optText }}</option>
+            <option value="{{ $optValue }}" {{ $resolvedSelected == $optValue ? 'selected' : '' }}>{{ $optText }}</option>
         @endforeach
     </select>
     @if ($hasError)

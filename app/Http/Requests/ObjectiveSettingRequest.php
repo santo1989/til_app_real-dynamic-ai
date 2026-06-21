@@ -23,6 +23,7 @@ class ObjectiveSettingRequest extends FormRequest
                 'objectives' => 'required|array|min:1|max:15',
                 'objectives.*.type' => 'required|string|in:departmental,individual',
                 'objectives.*.description' => 'required|string',
+                'objectives.*.timeline' => 'nullable|string|max:255',
                 'objectives.*.weightage' => 'required|integer',
                 'objectives.*.target' => 'nullable|string',
                 'date_of_setting' => 'nullable|date',
@@ -42,6 +43,7 @@ class ObjectiveSettingRequest extends FormRequest
         return [
             'type' => 'required|string|in:departmental,individual',
             'description' => 'required|string',
+            'timeline' => 'nullable|string|max:255',
             'weightage' => 'required|integer',
             'target' => 'required|string',
             'department_id' => 'nullable|exists:departments,id',

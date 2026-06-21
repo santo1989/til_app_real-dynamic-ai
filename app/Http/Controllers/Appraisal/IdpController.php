@@ -74,31 +74,330 @@ class IdpController extends Controller
         $fyLabel = $activeFY?->label;
         $profileUser = $user;
         
-        // 1. Get Employee's Individual Objectives (The 70%)
-        $myObjectives = Objective::where('user_id', $user->id)
-            ->where('financial_year', $fyLabel)
-            ->where('type', 'individual')
-            ->get();
-
-        // 2. Prepare Mapping: Objective Description => Skill Areas
-        $objectiveSkillMap = [];
-        foreach ($myObjectives as $obj) {
-            $master = IndividualObjectiveMaster::whereRaw('UPPER(title) = ?', [strtoupper($obj->description)])
-                ->with('skillAreas')
-                ->first();
-            
-            if ($master) {
-                $objectiveSkillMap[$obj->description] = $master->skillAreas->pluck('skill_area')->toArray();
-            }
-        }
-
         $idpsQuery = Idp::where('user_id', $user->id)->orderByDesc('id');
         if (!empty($fyLabel)) {
             $idpsQuery->where('financial_year', $fyLabel);
         }
         $idps = $idpsQuery->get();
 
-        return view('appraisal.idp.index', compact('idps', 'activeFY', 'profileUser', 'myObjectives', 'objectiveSkillMap'));
+        $skillAreaOptions = $this->activeSkillAreaOptions();
+
+        return view('appraisal.idp.index', compact('idps', 'activeFY', 'profileUser', 'skillAreaOptions'));
+    }
+
+    public function lineManagerList(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user || $user->role !== 'line_manager') {
+            abort(403);
+        }
+
+        $activeFY = FinancialYear::getActiveName();
+
+        // Fetch team members who have at least one IDP in the active FY
+        $teamUsers = User::query()
+            ->with(['department', 'idps' => function($q) use ($activeFY) {
+                if ($activeFY) $q->where('financial_year', $activeFY);
+                $q->limit(1);
+            }])
+            ->where('line_manager_id', $user->id)
+            ->whereHas('idps', function ($q) use ($activeFY) {
+                if ($activeFY) {
+                    $q->where('financial_year', $activeFY);
+                }
+            })
+            ->withCount(['idps' => function ($q) use ($activeFY) {
+                if ($activeFY) {
+                    $q->where('financial_year', $activeFY);
+                }
+            }])
+            ->withCount(['idps as approved_count' => function ($q) use ($activeFY) {
+                $q->where('is_approved', true);
+                if ($activeFY) {
+                    $q->where('financial_year', $activeFY);
+                }
+            }])
+            ->orderBy('name')
+            ->get();
+
+        return view('appraisal.line_manager.idp_list', compact('teamUsers', 'activeFY'));
+    }
+
+    public function lineManagerReview(Idp $idp)
+    {
+        $actor = auth()->user();
+        if (!$actor || $actor->role !== 'line_manager') {
+            abort(403);
+        }
+
+        $idp->load(['user.department', 'user.lineManager']);
+        $employee = $idp->user;
+        if (!$employee || (int) $employee->line_manager_id !== (int) $actor->id) {
+            abort(403);
+        }
+
+        $activeFY = FinancialYear::getActiveName();
+        $idps = Idp::query()
+            ->where('user_id', $employee->id)
+            ->where('financial_year', $activeFY)
+            ->orderBy('id')
+            ->get();
+
+        $idpData = $idps->map(function($i) {
+            return [
+                'id' => $i->id,
+                'skill_area' => $i->skill_area,
+                'description' => $i->description,
+                'expected_benefits' => $i->expected_benefits,
+                'action_plan' => $i->action_plan,
+                'resources_required' => $i->resources_required,
+                'timeline' => $i->review_date ? \Carbon\Carbon::parse($i->review_date)->format('Y-m-d') : ($i->timeline ?? ''),
+                'attainment' => is_null($i->attainment) ? '' : ($i->attainment ? '1' : '0'),
+                'visible_demonstration' => $i->visible_demonstration,
+                'hr_input' => $i->hr_input,
+                'is_approved' => (bool)$i->is_approved
+            ];
+        });
+
+        $skillAreaOptions = $this->activeSkillAreaOptions();
+
+        return view('appraisal.line_manager.idp_review', compact('employee', 'idps', 'idpData', 'activeFY', 'skillAreaOptions'));
+    }
+
+    public function lineManagerUpdate(Request $request, Idp $idp)
+    {
+        $actor = auth()->user();
+        if (!$actor || $actor->role !== 'line_manager') {
+            abort(403);
+        }
+
+        $idp->load('user');
+        $employee = $idp->user;
+        if (!$employee || (int) $employee->line_manager_id !== (int) $actor->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'idps' => 'required|array|min:1',
+            'idps.*.id' => 'required|exists:idps,id',
+            'idps.*.skill_area' => 'nullable|string|max:255',
+            'idps.*.description' => 'required|string',
+            'idps.*.expected_benefits' => 'nullable|string',
+            'idps.*.action_plan' => 'nullable|string',
+            'idps.*.resources_required' => 'nullable|string',
+            'idps.*.review_date' => 'nullable|date_format:Y-m-d',
+            'idps.*.attainment' => 'nullable|string',
+            'idps.*.visible_demonstration' => 'nullable|string',
+            'idps.*.is_approved' => 'nullable|boolean'
+        ]);
+
+        foreach ($validated['idps'] as $row) {
+            $existing = Idp::findOrFail($row['id']);
+            $isRowApproved = isset($row['is_approved']) ? (bool)$row['is_approved'] : false;
+            
+            // Cast attainment from string to nullable boolean
+            $attainment = null;
+            if (isset($row['attainment']) && $row['attainment'] !== '') {
+                $attainment = (bool)$row['attainment'];
+            }
+
+            $updateData = [
+                'skill_area' => $this->normalizeText($row['skill_area'] ?? null),
+                'description' => $this->normalizeText($row['description'] ?? null),
+                'expected_benefits' => $this->normalizeText($row['expected_benefits'] ?? null),
+                'action_plan' => $this->normalizeText($row['action_plan'] ?? null),
+                'resources_required' => $this->normalizeText($row['resources_required'] ?? null),
+                'review_date' => (!empty($row['review_date'])) ? $row['review_date'] : null,
+                'attainment' => $attainment,
+                'visible_demonstration' => $this->normalizeText($row['visible_demonstration'] ?? null),
+                'is_approved' => $isRowApproved,
+            ];
+
+            if ($isRowApproved) {
+                $updateData['approved_by_id'] = $actor->id;
+                $updateData['approved_at'] = now();
+                $updateData['approved_by_role'] = 'line_manager';
+                $updateData['signed_by_manager'] = true;
+                $updateData['manager_signed_by_name'] = $actor->name;
+                $updateData['manager_signed_at'] = now();
+            } else {
+                $updateData['approved_by_id'] = null;
+                $updateData['approved_at'] = null;
+                $updateData['approved_by_role'] = null;
+                $updateData['signed_by_manager'] = false;
+                $updateData['manager_signed_by_name'] = null;
+                $updateData['manager_signed_at'] = null;
+            }
+
+            $existing->update($updateData);
+
+            if (!empty($updateData['skill_area'])) {
+                $this->upsertSkillAreaMaster($updateData['skill_area'], $actor->id);
+            }
+        }
+
+        AuditLog::create([
+            'user_id' => $actor->id,
+            'action' => 'idp_team_reviewed',
+            'table_name' => 'idps',
+            'record_id' => $employee->id,
+            'details' => "LM reviewed all IDPs for employee {$employee->name}",
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Team IDPs updated successfully.',
+                'redirect' => route('idp.team.list')
+            ]);
+        }
+
+        return redirect()->route('idp.team.list')->with('success', 'Team IDPs updated successfully.');
+    }
+
+    public function hrList(Request $request)
+    {
+        $actor = $request->user();
+        if (!$actor || !in_array(($actor->role ?? null), ['hr_admin', 'super_admin'], true)) {
+            abort(403);
+        }
+
+        $activeFY = FinancialYear::getActiveName();
+
+        // Fetch all users who have at least one IDP in the active FY
+        $users = User::query()
+            ->with(['department', 'lineManager', 'idps' => function($q) use ($activeFY) {
+                if ($activeFY) $q->where('financial_year', $activeFY);
+                $q->limit(1);
+            }])
+            ->whereHas('idps', function ($q) use ($activeFY) {
+                if ($activeFY) {
+                    $q->where('financial_year', $activeFY);
+                }
+            })
+            ->withCount(['idps' => function ($q) use ($activeFY) {
+                if ($activeFY) {
+                    $q->where('financial_year', $activeFY);
+                }
+            }])
+            ->withCount(['idps as approved_count' => function ($q) use ($activeFY) {
+                $q->where('is_approved', true);
+                if ($activeFY) {
+                    $q->where('financial_year', $activeFY);
+                }
+            }])
+            ->orderBy('name')
+            ->get();
+
+        return view('appraisal.hr_admin.idp_list', compact('users', 'activeFY'));
+    }
+
+    public function hrReview(Idp $idp)
+    {
+        $actor = auth()->user();
+        if (!$actor || !in_array(($actor->role ?? null), ['hr_admin', 'super_admin'], true)) {
+            abort(403);
+        }
+
+        $idp->load(['user.department', 'user.lineManager']);
+        $employee = $idp->user;
+        if (!$employee) {
+            abort(404);
+        }
+
+        $activeFY = FinancialYear::getActiveName();
+        $idps = Idp::query()
+            ->where('user_id', $employee->id)
+            ->where('financial_year', $activeFY)
+            ->orderBy('id')
+            ->get();
+
+        // Data for Alpine.js table
+        $idpData = $idps->map(function($i) {
+            return [
+                'id' => $i->id,
+                'skill_area' => $i->skill_area,
+                'description' => $i->description,
+                'expected_benefits' => $i->expected_benefits,
+                'action_plan' => $i->action_plan,
+                'resources_required' => $i->resources_required,
+                'timeline' => $i->review_date ? \Carbon\Carbon::parse($i->review_date)->format('Y-m-d') : ($i->timeline ?? ''),
+                'attainment' => is_null($i->attainment) ? '' : ($i->attainment ? '1' : '0'),
+                'visible_demonstration' => $i->visible_demonstration,
+                'hr_input' => $i->hr_input,
+                'is_approved' => (bool)$i->is_approved
+            ];
+        });
+
+        $skillAreaOptions = $this->activeSkillAreaOptions();
+
+        return view('appraisal.hr_admin.idp_review', compact('employee', 'idps', 'idpData', 'activeFY', 'skillAreaOptions'));
+    }
+
+    public function hrUpdate(Request $request, Idp $idp)
+    {
+        $actor = auth()->user();
+        if (!$actor || !in_array(($actor->role ?? null), ['hr_admin', 'super_admin'], true)) {
+            abort(403);
+        }
+
+        $employee = $idp->user;
+        if (!$employee) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'idps' => 'required|array|min:1',
+            'idps.*.id' => 'required|exists:idps,id',
+            'idps.*.skill_area' => 'nullable|string|max:255',
+            'idps.*.description' => 'required|string',
+            'idps.*.expected_benefits' => 'nullable|string',
+            'idps.*.action_plan' => 'nullable|string',
+            'idps.*.resources_required' => 'nullable|string',
+            'idps.*.review_date' => 'nullable|date_format:Y-m-d',
+            'idps.*.attainment' => 'nullable|string',
+            'idps.*.visible_demonstration' => 'nullable|string',
+            'idps.*.hr_input' => 'nullable|string',
+            'idps.*.is_approved' => 'nullable|boolean'
+        ]);
+
+        foreach ($validated['idps'] as $row) {
+            $existing = Idp::findOrFail($row['id']);
+            
+            $attainment = null;
+            if (isset($row['attainment']) && $row['attainment'] !== '') {
+                $attainment = (bool)$row['attainment'];
+            }
+
+            $updateData = [
+                'skill_area' => $this->normalizeText($row['skill_area'] ?? null),
+                'description' => $this->normalizeText($row['description'] ?? null),
+                'expected_benefits' => $this->normalizeText($row['expected_benefits'] ?? null),
+                'action_plan' => $this->normalizeText($row['action_plan'] ?? null),
+                'resources_required' => $this->normalizeText($row['resources_required'] ?? null),
+                'review_date' => (!empty($row['review_date'])) ? $row['review_date'] : null,
+                'attainment' => $attainment,
+                'visible_demonstration' => $this->normalizeText($row['visible_demonstration'] ?? null),
+                'hr_input' => $this->normalizeText($row['hr_input'] ?? null),
+                'is_approved' => isset($row['is_approved']) ? (bool)$row['is_approved'] : $existing->is_approved,
+            ];
+
+            $existing->update($updateData);
+
+            if (!empty($updateData['skill_area'])) {
+                $this->upsertSkillAreaMaster($updateData['skill_area'], $actor->id);
+            }
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Team IDPs updated by HR successfully.',
+                'redirect' => route('idp.hr.list')
+            ]);
+        }
+
+        return redirect()->route('idp.hr.list')->with('success', 'IDP updated successfully.');
     }
 
     public function create()
@@ -366,6 +665,12 @@ class IdpController extends Controller
     {
         // Ensure the current user is authorized to update this IDP
         $this->authorize('update', $idp);
+
+        // Prevent update if already approved
+        if ($idp->is_approved) {
+            return redirect()->route('idp.index')->with('error', 'Approved IDPs cannot be updated.');
+        }
+
         // Ensure revisions are allowed for the active financial year
         $fy = \App\Models\FinancialYear::active();
         if ($fy && !$fy->isRevisionAllowed()) {
@@ -504,6 +809,11 @@ class IdpController extends Controller
     public function edit(Idp $idp)
     {
         $this->authorize('update', $idp);
+
+        // Prevent edit if already approved
+        if ($idp->is_approved) {
+            return redirect()->route('idp.index')->with('error', 'Approved IDPs cannot be edited.');
+        }
         if (Gate::allows('viewAny', Idp::class)) {
             $users = \App\Models\User::all();
             return view('appraisal.super_admin.idps_edit', compact('idp', 'users'));

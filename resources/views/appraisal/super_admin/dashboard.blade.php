@@ -142,7 +142,7 @@
             <!-- Recent Objectives -->
             <div class="col-md-4 mb-4">
                 <div class="card h-100">
-                    <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center">
+                     <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
                         <h6 class="mb-0"><i class="fas fa-bullseye"></i> Recent Objectives</h6>
                         <x-ui.button variant="light" href="{{ route('objectives.index') }}" class="btn-sm">View
                             All</x-ui.button>

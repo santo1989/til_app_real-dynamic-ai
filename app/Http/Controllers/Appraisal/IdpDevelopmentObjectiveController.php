@@ -15,8 +15,7 @@ class IdpDevelopmentObjectiveController extends Controller
     {
         $this->authorizeRole();
 
-        $items = IdpDevelopmentObjective::with('individualObjectiveMasters')
-            ->orderBy('skill_area')
+        $items = IdpDevelopmentObjective::orderBy('skill_area')
             ->paginate(25);
 
         return view('appraisal.hr_admin.idp_development_objectives.index', compact('items'));
@@ -44,7 +43,6 @@ class IdpDevelopmentObjectiveController extends Controller
 
         $data = $request->validate([
             'skill_area' => 'required|string|max:255',
-            'objective_master_id' => 'nullable|exists:individual_objective_masters,id',
             'is_active' => 'nullable|boolean',
         ]);
 
@@ -60,11 +58,7 @@ class IdpDevelopmentObjectiveController extends Controller
             ]
         );
 
-        if (!empty($data['objective_master_id'])) {
-            $skillArea->individualObjectiveMasters()->syncWithoutDetaching([$data['objective_master_id']]);
-        }
-
-        return redirect()->route('idp-development-objectives.index')->with('success', 'IDP skill mapping saved.');
+        return redirect()->route('idp-development-objectives.index')->with('success', 'IDP skill area saved.');
     }
 
     public function update(Request $request, IdpDevelopmentObjective $idpDevelopmentObjective): RedirectResponse
@@ -73,7 +67,6 @@ class IdpDevelopmentObjectiveController extends Controller
 
         $data = $request->validate([
             'skill_area' => 'required|string|max:255',
-            'objective_master_id' => 'nullable|exists:individual_objective_masters,id',
             'is_active' => 'nullable|boolean',
         ]);
 
@@ -93,11 +86,7 @@ class IdpDevelopmentObjectiveController extends Controller
             'is_active' => (bool)($data['is_active'] ?? false),
         ]);
 
-        if (!empty($data['objective_master_id'])) {
-            $idpDevelopmentObjective->individualObjectiveMasters()->syncWithoutDetaching([$data['objective_master_id']]);
-        }
-
-        return redirect()->route('idp-development-objectives.index')->with('success', 'IDP skill mapping updated.');
+        return redirect()->route('idp-development-objectives.index')->with('success', 'IDP skill area updated.');
     }
 
     public function destroy(IdpDevelopmentObjective $idpDevelopmentObjective): RedirectResponse
@@ -106,7 +95,7 @@ class IdpDevelopmentObjectiveController extends Controller
 
         $idpDevelopmentObjective->delete();
 
-        return redirect()->route('idp-development-objectives.index')->with('success', 'IDP master pair deleted.');
+        return redirect()->route('idp-development-objectives.index')->with('success', 'IDP skill area deleted.');
     }
 
     public function importCsv(Request $request): RedirectResponse

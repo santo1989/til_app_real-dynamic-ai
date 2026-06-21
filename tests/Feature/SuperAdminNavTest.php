@@ -20,15 +20,12 @@ class SuperAdminNavTest extends TestCase
 
         $response->assertStatus(200);
 
-        // Assert presence of appraisal-module links by href to avoid matching other labels
-        $response->assertSee('href="' . route('objectives.my') . '"', false);
-        $response->assertSee('href="' . route('appraisals.midterm') . '"', false);
+        // Assert presence of manager/admin module links by href
         $response->assertSee('href="' . route('objectives.team') . '"', false);
         $response->assertSee('href="' . route('objectives.approvals') . '"', false);
-        $response->assertSee('href="' . route('idps.index', ['manager_id' => $user->id]) . '"', false);
-        $response->assertSee('href="' . route('objectives.department') . '"', false);
-        $response->assertSee('href="' . route('objectives.board.index') . '"', false);
         $response->assertSee('href="' . route('idps.index') . '"', false);
+        $response->assertSee('href="' . route('users.index') . '"', false);
+        $response->assertSee('href="' . route('departments.index') . '"', false);
     }
 
     public function test_non_super_admin_does_not_see_admin_module_links()

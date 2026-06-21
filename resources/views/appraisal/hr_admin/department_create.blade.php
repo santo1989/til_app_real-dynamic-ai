@@ -28,8 +28,7 @@
 
                 <x-ui.form-field name="name" label="Department Name" required="true" col="col-12 col-lg-6"
                     placeholder="Enter department name" />
-                <x-ui.form-field name="code" label="Department Code" col="col-12 col-lg-6"
-                    placeholder="e.g., ITMIS" />
+                
                 <x-ui.form-select name="head_id" label="Department Head" col="col-12 col-lg-6"
                     placeholder="-- Select Head --" :options="$headOptions" />
             </div>

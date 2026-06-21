@@ -128,10 +128,20 @@ class UserController extends Controller
     {
         $departments = Department::all();
         $lineManagers = User::query()
-            ->whereIn('role', ['line_manager', 'dept_head', 'hr_admin'])
+            ->whereIn('role', ['line_manager', 'dept_head', 'hr_admin', 'board'])
             ->orderBy('name')
             ->get(['id', 'name', 'role']);
-        return view('appraisal.hr_admin.user_create', compact('departments', 'lineManagers'));
+
+        $roleOptions = [
+            'employee' => 'Employee',
+            'line_manager' => 'Line Manager',
+            'dept_head' => 'Department Head',
+            'board' => 'Board Member',
+            'hr_admin' => 'HR Admin',
+            'super_admin' => 'Super Admin',
+        ];
+
+        return view('appraisal.hr_admin.user_create', compact('departments', 'lineManagers', 'roleOptions'));
     }
 
     public function store(Request $request)
@@ -167,13 +177,24 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
+        $user->load(['department', 'lineManager']);
         $departments = Department::all();
         $lineManagers = User::query()
             ->whereIn('role', ['line_manager', 'dept_head', 'hr_admin'])
             ->where('id', '!=', $user->id)
             ->orderBy('name')
             ->get(['id', 'name', 'role']);
-        return view('appraisal.hr_admin.user_edit', compact('user', 'departments', 'lineManagers'));
+
+        $roleOptions = [
+            'employee' => 'Employee',
+            'line_manager' => 'Line Manager',
+            'dept_head' => 'Department Head',
+            'board' => 'Board Member',
+            'hr_admin' => 'HR Admin',
+            'super_admin' => 'Super Admin',
+        ];
+
+        return view('appraisal.hr_admin.user_edit', compact('user', 'departments', 'lineManagers', 'roleOptions'));
     }
 
     public function update(Request $request, User $user)

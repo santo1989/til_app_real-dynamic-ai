@@ -47,7 +47,10 @@ class DepartmentalObjectiveAssignmentController extends Controller
 
         $departments = Department::orderBy('name')->get();
         $masters = DepartmentalObjectiveMaster::where('is_active', true)->orderBy('title')->get();
-        $users = User::orderBy('name')->get(['id', 'name', 'role']);
+        $users = User::with('department')
+            ->whereIn('role', ['line_manager', 'dept_head', 'board', 'hr_admin', 'super_admin'])
+            ->orderBy('name')
+            ->get();
 
         $selectedDeptId = $request->query('department_id');
         $teams = $selectedDeptId ? Team::where('department_id', $selectedDeptId)->get() : collect();
@@ -78,7 +81,7 @@ class DepartmentalObjectiveAssignmentController extends Controller
             'rows.*.objective_master_id' => 'required|exists:departmental_objective_masters,id',
             'rows.*.timeline' => 'nullable|string',
             'rows.*.weightage' => 'required|integer|min:0|max:30',
-            'rows.*.certifying_authority_role' => 'required|string',
+            'rows.*.certifying_authority_user_id' => 'required|exists:users,id',
         ]);
 
         DB::transaction(function () use ($data, $activeFy) {
@@ -90,7 +93,7 @@ class DepartmentalObjectiveAssignmentController extends Controller
                     'objective_master_id' => $row['objective_master_id'],
                     'timeline' => $row['timeline'] ?? '',
                     'weightage' => $row['weightage'],
-                    'certifying_authority_role' => $row['certifying_authority_role'],
+                    'certifying_authority_user_id' => $row['certifying_authority_user_id'],
                     'created_by' => auth()->id(),
                 ]);
             }
@@ -113,7 +116,10 @@ class DepartmentalObjectiveAssignmentController extends Controller
             
         $departments = Department::orderBy('name')->get();
         $masters = DepartmentalObjectiveMaster::where('is_active', true)->orderBy('title')->get();
-        $users = User::orderBy('name')->get(['id', 'name', 'role']);
+        $users = User::with('department')
+            ->whereIn('role', ['line_manager', 'dept_head', 'board', 'hr_admin', 'super_admin'])
+            ->orderBy('name')
+            ->get();
         $teams = Team::where('department_id', $departmentId)->get();
         $deptEmployees = User::where('department_id', $departmentId)->orderBy('name')->get();
 
@@ -141,7 +147,7 @@ class DepartmentalObjectiveAssignmentController extends Controller
             'rows.*.objective_master_id' => 'required|exists:departmental_objective_masters,id',
             'rows.*.timeline' => 'nullable|string',
             'rows.*.weightage' => 'required|integer|min:0|max:30',
-            'rows.*.certifying_authority_role' => 'required|string',
+            'rows.*.certifying_authority_user_id' => 'required|exists:users,id',
         ]);
 
         DB::transaction(function () use ($departmentId, $activeFy, $data) {
@@ -159,7 +165,7 @@ class DepartmentalObjectiveAssignmentController extends Controller
                     'objective_master_id' => $row['objective_master_id'],
                     'timeline' => $row['timeline'] ?? '',
                     'weightage' => $row['weightage'],
-                    'certifying_authority_role' => $row['certifying_authority_role'],
+                    'certifying_authority_user_id' => $row['certifying_authority_user_id'],
                     'created_by' => auth()->id(),
                 ]);
             }
