@@ -12,6 +12,13 @@
     $ratings = is_string($appraisal?->ratings) ? json_decode($appraisal->ratings, true) : (is_array($appraisal?->ratings) ? $appraisal->ratings : []);
     $scores = $ratings['scores'] ?? [];
     $midtermNotes = $ratings['notes'] ?? [];
+    
+    // Fetch employee's submitted year-end appraisal to show their comments
+    $yearEndAppraisal = \App\Models\Appraisal::where('user_id', $employee->id)
+        ->where('type', 'year_end')
+        ->where('financial_year', $fyLabel)
+        ->orderBy('id', 'desc')
+        ->first();
 
     $computedYearTotal = 0.0;
     foreach ($deptObjectives as $d) {
@@ -79,14 +86,13 @@
                     <th>Timeline</th>
                     <th>Weightage %</th>
                     <th>Mid Term Comment</th>
-                    <th>Emp. Self Score</th>
-                    <th>Line Manager Score (TA)</th>
+                    <th>% Target Achieved (TA)</th>
                     <th>Final Score (W * TA / 100)</th>
                 </tr>
             </thead>
             <tbody>
                 <tr class="table-secondary">
-                    <td colspan="8"><strong>Departmental/Team Objectives</strong></td>
+                    <td colspan="7"><strong>Departmental/Team Objectives</strong></td>
                 </tr>
 
                 @php $sl = 1; @endphp
@@ -106,14 +112,13 @@
                         <td>{{ $deptObj->timeline }}</td>
                         <td>{{ $deptObj->weightage }}</td>
                         <td>{{ $deptMidComment !== '' ? $deptMidComment : '—' }}</td>
-                        <td class="text-center text-primary fw-bold">—</td>
                         <td>{{ $yearTa === null ? '—' : rtrim(rtrim(number_format($yearTa, 2), '0'), '.') }}</td>
                         <td class="dept-score" data-score="{{ $yearScore ?? 0 }}">{{ $yearScore === null ? '—' : number_format($yearScore, 2) }}</td>
                     </tr>
                 @endforeach
 
                 <tr class="table-secondary">
-                    <td colspan="8"><strong>Individual Objectives</strong></td>
+                    <td colspan="7"><strong>Individual Objectives</strong></td>
                 </tr>
 
                 @php $sl = 1; @endphp
@@ -132,7 +137,6 @@
                         <td>{{ $obj->timeline }}</td>
                         <td>{{ $obj->weightage }}</td>
                         <td>{{ $midDisplay !== '' ? $midDisplay : '—' }}</td>
-                        <td class="text-center text-primary fw-bold">{{ $obj->employee_score !== null ? rtrim(rtrim(number_format($obj->employee_score, 2), '0'), '.') : '—' }}</td>
                         <td>
                             @if ($mode === 'lm')
                                 <input type="number" name="scores[{{ $obj->id }}]" class="form-control ta-input d-print-none"
@@ -151,7 +155,7 @@
                 <tr class="table-info">
                     <td colspan="3" class="text-end"><strong>Total</strong></td>
                     <td><strong>100</strong></td>
-                    <td colspan="2"></td>
+                    <td></td>
                     <td></td>
                     <td id="year-total"><strong>{{ number_format($computedYearTotal, 2) }}</strong></td>
                 </tr>
@@ -222,6 +226,11 @@
 
     <div class="mt-4">
         <h3 class="section-title">Overall Comments</h3>
+
+        <div class="mb-3">
+            <label class="form-label">Employee's Self Assessment Comment</label>
+            <textarea class="form-control" rows="3" readonly>{{ $yearEndAppraisal?->comments ?? 'No comments provided by employee.' }}</textarea>
+        </div>
 
         <div class="mb-3">
             <label class="form-label">Immediate Line Manager’s Comment</label>
