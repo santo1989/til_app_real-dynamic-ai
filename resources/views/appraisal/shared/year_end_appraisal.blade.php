@@ -9,13 +9,9 @@
     $mode = $mode ?? 'read';
     $readOnly = (bool) ($readOnly ?? true);
 
-    $scores = (is_array($appraisal?->ratings) && isset($appraisal->ratings['scores']) && is_array($appraisal->ratings['scores']))
-        ? $appraisal->ratings['scores']
-        : [];
-
-    $midtermNotes = (is_array($appraisal?->ratings) && isset($appraisal->ratings['notes']) && is_array($appraisal->ratings['notes']))
-        ? $appraisal->ratings['notes']
-        : [];
+    $ratings = is_string($appraisal?->ratings) ? json_decode($appraisal->ratings, true) : (is_array($appraisal?->ratings) ? $appraisal->ratings : []);
+    $scores = $ratings['scores'] ?? [];
+    $midtermNotes = $ratings['notes'] ?? [];
 
     $computedYearTotal = 0.0;
     foreach ($deptObjectives as $d) {
@@ -83,13 +79,14 @@
                     <th>Timeline</th>
                     <th>Weightage %</th>
                     <th>Mid Term Comment</th>
-                    <th>% Target Achieved (TA)</th>
+                    <th>Emp. Self Score</th>
+                    <th>Line Manager Score (TA)</th>
                     <th>Final Score (W * TA / 100)</th>
                 </tr>
             </thead>
             <tbody>
                 <tr class="table-secondary">
-                    <td colspan="7"><strong>Departmental/Team Objectives</strong></td>
+                    <td colspan="8"><strong>Departmental/Team Objectives</strong></td>
                 </tr>
 
                 @php $sl = 1; @endphp
@@ -109,13 +106,14 @@
                         <td>{{ $deptObj->timeline }}</td>
                         <td>{{ $deptObj->weightage }}</td>
                         <td>{{ $deptMidComment !== '' ? $deptMidComment : '—' }}</td>
+                        <td class="text-center text-primary fw-bold">—</td>
                         <td>{{ $yearTa === null ? '—' : rtrim(rtrim(number_format($yearTa, 2), '0'), '.') }}</td>
                         <td class="dept-score" data-score="{{ $yearScore ?? 0 }}">{{ $yearScore === null ? '—' : number_format($yearScore, 2) }}</td>
                     </tr>
                 @endforeach
 
                 <tr class="table-secondary">
-                    <td colspan="7"><strong>Individual Objectives</strong></td>
+                    <td colspan="8"><strong>Individual Objectives</strong></td>
                 </tr>
 
                 @php $sl = 1; @endphp
@@ -134,12 +132,14 @@
                         <td>{{ $obj->timeline }}</td>
                         <td>{{ $obj->weightage }}</td>
                         <td>{{ $midDisplay !== '' ? $midDisplay : '—' }}</td>
+                        <td class="text-center text-primary fw-bold">{{ $obj->employee_score !== null ? rtrim(rtrim(number_format($obj->employee_score, 2), '0'), '.') : '—' }}</td>
                         <td>
                             @if ($mode === 'lm')
-                                <input type="number" name="scores[{{ $obj->id }}]" class="form-control ta-input"
+                                <input type="number" name="scores[{{ $obj->id }}]" class="form-control ta-input d-print-none"
                                     data-weightage="{{ $obj->weightage }}"
                                     value="{{ old('scores.' . $obj->id, $scores[$obj->id] ?? '') }}" min="0" max="100"
                                     @if($readOnly) disabled @endif>
+                                <span class="print-value d-none d-print-inline">{{ old('scores.' . $obj->id, $scores[$obj->id] ?? '') }}</span>
                             @else
                                 {{ $yearTa === null ? '—' : rtrim(rtrim(number_format($yearTa, 2), '0'), '.') }}
                             @endif
@@ -151,7 +151,7 @@
                 <tr class="table-info">
                     <td colspan="3" class="text-end"><strong>Total</strong></td>
                     <td><strong>100</strong></td>
-                    <td></td>
+                    <td colspan="2"></td>
                     <td></td>
                     <td id="year-total"><strong>{{ number_format($computedYearTotal, 2) }}</strong></td>
                 </tr>
@@ -267,47 +267,69 @@
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const inputs = document.querySelectorAll('.ta-input');
-    const totalEl = document.getElementById('year-total');
-    const ratingEl = document.getElementById('rating');
+(function() {
+    function initAppraisalScoring() {
+        const inputs = document.querySelectorAll('.ta-input');
+        const totalEl = document.getElementById('year-total');
+        const ratingEl = document.getElementById('rating');
 
-    function calculateTotal() {
-        let total = 0;
-        
-        document.querySelectorAll('.dept-score').forEach(td => {
-            total += parseFloat(td.getAttribute('data-score') || 0);
-        });
-
-        inputs.forEach(input => {
-            let ta = parseFloat(input.value || 0);
-            let w = parseFloat(input.getAttribute('data-weightage') || 0);
-            let score = (w * ta) / 100;
+        function calculateTotal() {
+            let total = 0;
             
-            let scoreTd = input.closest('tr').querySelector('.ind-score');
-            if (scoreTd) {
-                scoreTd.innerHTML = input.value === '' ? '—' : score.toFixed(2);
+            document.querySelectorAll('.dept-score').forEach(td => {
+                total += parseFloat(td.getAttribute('data-score') || 0);
+            });
+
+            inputs.forEach(input => {
+                let ta = parseFloat(input.value || 0);
+                let w = parseFloat(input.getAttribute('data-weightage') || 0);
+                let score = (w * ta) / 100;
+                
+                let scoreTd = input.closest('tr').querySelector('.ind-score');
+                if (scoreTd) {
+                    scoreTd.innerHTML = input.value === '' ? '—' : score.toFixed(2);
+                }
+                
+                // also update a print value span
+                let printSpan = input.closest('td').querySelector('.print-value');
+                if (printSpan) {
+                    printSpan.innerHTML = input.value;
+                }
+                
+                total += score;
+            });
+
+            if (totalEl) {
+                totalEl.innerHTML = '<strong>' + total.toFixed(2) + '</strong>';
             }
-            
-            total += score;
-        });
 
-        if (totalEl) {
-            totalEl.innerHTML = '<strong>' + total.toFixed(2) + '</strong>';
+            if (ratingEl) {
+                let rating = 'Below';
+                if (total >= 95) rating = 'Outstanding';
+                else if (total >= 85) rating = 'Very Good';
+                else if (total >= 70) rating = 'Good';
+                ratingEl.value = rating;
+            }
         }
 
-        if (ratingEl) {
-            let rating = 'Below';
-            if (total >= 95) rating = 'Outstanding';
-            else if (total >= 85) rating = 'Very Good';
-            else if (total >= 70) rating = 'Good';
-            ratingEl.value = rating;
+        inputs.forEach(input => {
+            // remove old listener if init is called multiple times
+            input.removeEventListener('input', calculateTotal);
+            input.addEventListener('input', calculateTotal);
+        });
+        
+        // Run once on load just in case there are pre-filled values
+        if (inputs.length > 0) {
+            calculateTotal();
         }
     }
 
-    inputs.forEach(input => {
-        input.addEventListener('input', calculateTotal);
-    });
-});
+    // Run immediately
+    initAppraisalScoring();
+
+    // Support for Turbo/Livewire navigations
+    document.addEventListener('turbo:load', initAppraisalScoring);
+    document.addEventListener('livewire:navigated', initAppraisalScoring);
+})();
 </script>
 </div>
