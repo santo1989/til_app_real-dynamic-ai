@@ -152,6 +152,7 @@
                     <td colspan="3" class="text-end"><strong>Total</strong></td>
                     <td><strong>100</strong></td>
                     <td></td>
+                    <td></td>
                     <td id="year-total"><strong>{{ number_format($computedYearTotal, 2) }}</strong></td>
                 </tr>
             </tbody>

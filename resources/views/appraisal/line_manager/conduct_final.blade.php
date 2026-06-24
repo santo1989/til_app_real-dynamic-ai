@@ -11,9 +11,14 @@
         <a href="{{ route('appraisal.final.list') }}" class="text-success text-decoration-none small fw-bold d-inline-block">
             <i class="fas fa-arrow-left me-1"></i> Back to List
         </a>
-        @if($readOnly)
-            <span class="badge bg-success">Completed</span>
-        @endif
+        <div>
+            @if($readOnly)
+                <span class="badge bg-success me-2">Completed</span>
+            @endif
+            <button onclick="window.print()" class="btn btn-secondary btn-sm d-print-none">
+                <i class="fas fa-print me-1"></i> Print / Preview
+            </button>
+        </div>
     </div>
 
     @include('components.alert')
