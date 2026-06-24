@@ -143,7 +143,7 @@
                                     <textarea x-model="row.resources_required" class="form-control border-0 shadow-none excel-textarea py-1" style="font-size: 0.75rem;" rows="2" placeholder="Support..."></textarea>
                                 </td>
                                 <td class="p-0">
-                                    <input type="text" x-model="row.timeline" class="form-control border-0 shadow-none h-100 excel-input py-1" style="font-size: 0.75rem;" placeholder="e.g. Q4">
+                                    <input type="date" x-model="row.timeline" class="form-control border-0 shadow-none h-100 excel-input py-1" style="font-size: 0.75rem;">
                                 </td>
                                 <td class="p-0 bg-light text-center small text-muted">
                                     <span x-text="row.attainment == 1 ? 'YES' : (row.attainment == 0 ? 'NO' : '-')"></span>
