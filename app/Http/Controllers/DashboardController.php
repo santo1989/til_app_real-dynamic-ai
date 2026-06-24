@@ -20,6 +20,8 @@ class DashboardController extends Controller
             return redirect()->route('login');
         }
 
+        $activeFinancialYear = FinancialYear::active();
+
         switch ($user->role ?? 'employee') {
             case 'super_admin':
                 // Super admin gets comprehensive system overview
@@ -42,7 +44,7 @@ class DashboardController extends Controller
 
                 // include IDP totals for super admin
                 $stats['total_idps'] = \App\Models\Idp::count();
-                return view('appraisal.super_admin.dashboard', compact('stats', 'recentUsers', 'recentObjectives', 'recentAppraisals', 'departments'));
+                return view('appraisal.super_admin.dashboard', compact('stats', 'recentUsers', 'recentObjectives', 'recentAppraisals', 'departments', 'activeFinancialYear'));
 
             case 'hr_admin':
                 $stats = [
@@ -55,7 +57,6 @@ class DashboardController extends Controller
                     'open_pips' => Pip::where('status', 'open')->count(),
                 ];
                 
-                $activeFinancialYear = FinancialYear::active();
                 $fyLabel = $activeFinancialYear?->label ?? 'None';
                 
                 $stats['appraisal_stats'] = [
@@ -92,16 +93,17 @@ class DashboardController extends Controller
                     'pending_yearend' => $pendingYearend,
                     'team_idps' => $teamIdps,
                 ];
-                return view('appraisal.line_manager.dashboard', compact('stats'));
+                
+                return view('appraisal.line_manager.dashboard', compact('stats', 'activeFinancialYear'));
 
             case 'dept_head':
                 $deptId = $user->department_id;
                 $departmentObjectives = Objective::where('department_id', $deptId)->with('user')->get();
-                return view('appraisal.dept_head.dashboard', compact('departmentObjectives'));
+                return view('appraisal.dept_head.dashboard', compact('departmentObjectives', 'activeFinancialYear'));
 
             case 'board':
                 $reports = Appraisal::latest()->limit(20)->get();
-                return view('appraisal.board.dashboard', compact('reports'));
+                return view('appraisal.board.dashboard', compact('reports', 'activeFinancialYear'));
 
             default:
                 $myObjectivesCount = Objective::where('user_id', $user->id)->count();
@@ -114,7 +116,7 @@ class DashboardController extends Controller
                     'yearend_due' => $yearendDue,
                     'my_idps' => $myIdps,
                 ];
-                return view('appraisal.employee.dashboard', compact('stats'));
+                return view('appraisal.employee.dashboard', compact('stats', 'activeFinancialYear'));
         }
     }
 }
