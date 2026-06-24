@@ -125,7 +125,8 @@
                 @foreach ($individualObjectives as $obj)
                     @php
                         $w = (float) ($obj->weightage ?? 0);
-                        $yearTaValue = old('scores.' . $obj->id, $scores[$obj->id] ?? null);
+                        // Pre-fill with manager's score if it exists, otherwise fall back to employee's target_achieved
+                        $yearTaValue = old('scores.' . $obj->id, $scores[$obj->id] ?? $obj->target_achieved);
                         $yearTa = is_null($yearTaValue) ? null : (float) $yearTaValue;
                         $yearScore = $yearTa === null ? null : ($w * $yearTa / 100);
                         $midNote = $midtermNotes[$obj->id] ?? null;
@@ -139,11 +140,10 @@
                         <td>{{ $midDisplay !== '' ? $midDisplay : '—' }}</td>
                         <td>
                             @if ($mode === 'lm')
-                                <input type="number" name="scores[{{ $obj->id }}]" class="form-control ta-input d-print-none"
+                                <input type="number" name="scores[{{ $obj->id }}]" class="form-control ta-input"
                                     data-weightage="{{ $obj->weightage }}"
-                                    value="{{ old('scores.' . $obj->id, $scores[$obj->id] ?? '') }}" min="0" max="100"
+                                    value="{{ $yearTaValue }}" min="0" max="100"
                                     @if($readOnly) disabled @endif>
-                                <span class="print-value d-none d-print-inline">{{ old('scores.' . $obj->id, $scores[$obj->id] ?? '') }}</span>
                             @else
                                 {{ $yearTa === null ? '—' : rtrim(rtrim(number_format($yearTa, 2), '0'), '.') }}
                             @endif
@@ -297,12 +297,6 @@
                 let scoreTd = input.closest('tr').querySelector('.ind-score');
                 if (scoreTd) {
                     scoreTd.innerHTML = input.value === '' ? '—' : score.toFixed(2);
-                }
-                
-                // also update a print value span
-                let printSpan = input.closest('td').querySelector('.print-value');
-                if (printSpan) {
-                    printSpan.innerHTML = input.value;
                 }
                 
                 total += score;
