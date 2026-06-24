@@ -110,7 +110,7 @@
                         <td>{{ $deptObj->weightage }}</td>
                         <td>{{ $deptMidComment !== '' ? $deptMidComment : '—' }}</td>
                         <td>{{ $yearTa === null ? '—' : rtrim(rtrim(number_format($yearTa, 2), '0'), '.') }}</td>
-                        <td>{{ $yearScore === null ? '—' : number_format($yearScore, 2) }}</td>
+                        <td class="dept-score" data-score="{{ $yearScore ?? 0 }}">{{ $yearScore === null ? '—' : number_format($yearScore, 2) }}</td>
                     </tr>
                 @endforeach
 
@@ -136,14 +136,15 @@
                         <td>{{ $midDisplay !== '' ? $midDisplay : '—' }}</td>
                         <td>
                             @if ($mode === 'lm')
-                                <input type="number" name="scores[{{ $obj->id }}]" class="form-control"
+                                <input type="number" name="scores[{{ $obj->id }}]" class="form-control ta-input"
+                                    data-weightage="{{ $obj->weightage }}"
                                     value="{{ old('scores.' . $obj->id, $scores[$obj->id] ?? '') }}" min="0" max="100"
                                     @if($readOnly) disabled @endif>
                             @else
                                 {{ $yearTa === null ? '—' : rtrim(rtrim(number_format($yearTa, 2), '0'), '.') }}
                             @endif
                         </td>
-                        <td>{{ $yearScore === null ? '—' : number_format($yearScore, 2) }}</td>
+                        <td class="ind-score">{{ $yearScore === null ? '—' : number_format($yearScore, 2) }}</td>
                     </tr>
                 @endforeach
 
@@ -225,7 +226,7 @@
             <label class="form-label">Immediate Line Manager’s Comment</label>
             @if ($mode === 'lm')
                 <textarea name="manager_comment" class="form-control" rows="3"
-                    @if($readOnly || !empty(trim((string) ($appraisal?->action_points ?? '')))) disabled @endif>{{ old('manager_comment', $appraisal?->action_points) }}</textarea>
+                    @if($readOnly) disabled @endif>{{ old('manager_comment', $appraisal?->action_points) }}</textarea>
             @else
                 <textarea class="form-control" rows="3" readonly>{{ $appraisal?->action_points }}</textarea>
             @endif
@@ -263,4 +264,49 @@
         color: #1a6b3b;
     }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('.ta-input');
+    const totalEl = document.getElementById('year-total');
+    const ratingEl = document.getElementById('rating');
+
+    function calculateTotal() {
+        let total = 0;
+        
+        document.querySelectorAll('.dept-score').forEach(td => {
+            total += parseFloat(td.getAttribute('data-score') || 0);
+        });
+
+        inputs.forEach(input => {
+            let ta = parseFloat(input.value || 0);
+            let w = parseFloat(input.getAttribute('data-weightage') || 0);
+            let score = (w * ta) / 100;
+            
+            let scoreTd = input.closest('tr').querySelector('.ind-score');
+            if (scoreTd) {
+                scoreTd.innerHTML = input.value === '' ? '—' : score.toFixed(2);
+            }
+            
+            total += score;
+        });
+
+        if (totalEl) {
+            totalEl.innerHTML = '<strong>' + total.toFixed(2) + '</strong>';
+        }
+
+        if (ratingEl) {
+            let rating = 'Below';
+            if (total >= 95) rating = 'Outstanding';
+            else if (total >= 85) rating = 'Very Good';
+            else if (total >= 70) rating = 'Good';
+            ratingEl.value = rating;
+        }
+    }
+
+    inputs.forEach(input => {
+        input.addEventListener('input', calculateTotal);
+    });
+});
+</script>
 </div>
