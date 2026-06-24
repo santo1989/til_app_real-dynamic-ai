@@ -7,52 +7,81 @@
     <title>Forgot Password - TIL Performance Appraisal System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        :root {
+            --theme-primary: #1a6b3b;
+            --theme-secondary: #2d9a56;
+            --theme-accent: #e9f5ee;
+            --theme-surface: #f7fbf8;
+            --theme-border: rgba(26, 107, 59, 0.15);
+        }
+
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background:
+                radial-gradient(circle at top left, rgba(45, 154, 86, 0.22), transparent 30%),
+                radial-gradient(circle at bottom right, rgba(26, 107, 59, 0.18), transparent 28%),
+                linear-gradient(135deg, #eff8f2 0%, #dff1e6 48%, #cbe7d5 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 24px;
         }
 
         .reset-card {
             max-width: 500px;
             width: 100%;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.94);
+            border-radius: 18px;
+            border: 1px solid var(--theme-border);
+            box-shadow: 0 22px 60px rgba(26, 107, 59, 0.16);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
         }
 
         .reset-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%);
             color: white;
-            padding: 30px;
-            border-radius: 10px 10px 0 0;
+            padding: 32px 30px;
             text-align: center;
         }
 
         .reset-body {
-            padding: 30px;
+            padding: 32px 30px;
         }
 
         .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            border-color: var(--theme-primary);
+            box-shadow: 0 0 0 0.2rem rgba(26, 107, 59, 0.18);
         }
 
         .btn-outline-primary {
-            background: transparent;
+            background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%);
             color: #fff;
-            border: 2px solid transparent;
-            background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            background-origin: border-box;
-            -webkit-background-clip: padding-box;
-            background-clip: padding-box;
+            border: 0;
+            box-shadow: 0 10px 24px rgba(26, 107, 59, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
         }
 
         .btn-outline-primary:hover {
-            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            background: linear-gradient(135deg, #166036 0%, #238a4a 100%);
             color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 14px 28px rgba(26, 107, 59, 0.26);
+        }
+
+        .alert-info {
+            background-color: var(--theme-accent);
+            border-color: rgba(26, 107, 59, 0.15);
+            color: #315743;
+        }
+
+        .text-link-theme {
+            color: var(--theme-primary);
+            font-weight: 600;
+        }
+
+        .text-link-theme:hover {
+            color: var(--theme-secondary);
         }
     </style>
 </head>
@@ -97,7 +126,7 @@
                 </div>
 
                 <div class="text-center">
-                    <a href="{{ route('login') }}" class="text-decoration-none">← Back to Login</a>
+                    <a href="{{ route('login') }}" class="text-decoration-none text-link-theme">← Back to Login</a>
                 </div>
             </form>
 

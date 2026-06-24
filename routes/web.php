@@ -19,6 +19,7 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
+Route::get('/dashboard/summary', [App\Http\Controllers\DashboardController::class, 'summary'])->middleware(['auth', 'role:super_admin'])->name('dashboard.summary');
 
 require __DIR__ . '/auth.php';
 
