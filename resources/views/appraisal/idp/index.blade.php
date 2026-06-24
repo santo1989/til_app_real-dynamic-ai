@@ -143,7 +143,7 @@
                                     <textarea x-model="row.resources_required" class="form-control border-0 shadow-none excel-textarea py-1" style="font-size: 0.75rem;" rows="2" placeholder="Support..."></textarea>
                                 </td>
                                 <td class="p-0">
-                                    <input type="date" x-model="row.timeline" class="form-control border-0 shadow-none h-100 excel-input py-1" style="font-size: 0.75rem;">
+                                    <input type="text" x-model="row.timeline" class="form-control border-0 shadow-none h-100 excel-input py-1" style="font-size: 0.75rem;" placeholder="e.g. Q4">
                                 </td>
                                 <td class="p-0 bg-light text-center small text-muted">
                                     <span x-text="row.attainment == 1 ? 'YES' : (row.attainment == 0 ? 'NO' : '-')"></span>
@@ -210,7 +210,7 @@
                             <td>{{ Str::limit($idp->expected_benefits, 50) }}</td>
                             <td>{{ Str::limit($idp->action_plan, 50) }}</td>
                             <td>{{ Str::limit($idp->resources_required, 50) }}</td>
-                            <td>{{ $idp->review_date ? \Carbon\Carbon::parse($idp->review_date)->format('d M Y') : ($idp->timeline ?? 'N/A') }}</td>
+                            <td>{{ $idp->review_date ?: ($idp->timeline ?? 'N/A') }}</td>
                             <td class="text-center fw-bold">
                                 @if(is_null($idp->attainment))
                                     <span class="text-muted">-</span>

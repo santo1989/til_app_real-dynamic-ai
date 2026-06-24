@@ -7,7 +7,7 @@
                 <div class="mb-3"><label>Description</label>
                     <textarea name="description" class="form-control"></textarea>
                 </div>
-                <div class="mb-3"><label>Review Date</label><input type="date" name="review_date" class="form-control" />
+                <div class="mb-3"><label>Review Date</label><input type="text" name="review_date" class="form-control" placeholder="e.g. Q4" />
                 </div>
                 <x-ui.button variant="primary" type="submit">Save IDP</x-ui.button>
             </form>

@@ -173,8 +173,8 @@
                         </div>
                         <div class="col-md-6">
                             <label class="idp-label fw-bold text-dark"><i class="fas fa-calendar-alt text-primary me-1"></i> Deadline/ Timeline</label>
-                            <input type="date" name="review_date" class="form-control idp-input"
-                                value="{{ old('review_date', optional($idp->review_date)->format('Y-m-d') ?? $idp->review_date) }}"
+                            <input type="text" name="review_date" class="form-control idp-input"
+                                value="{{ old('review_date', $idp->review_date) }}"
                                 required />
                         </div>
                         <div class="col-md-12">

@@ -198,7 +198,7 @@
                         <td>{{ $idp->expected_benefits }}</td>
                         <td>{{ $idp->action_plan }}</td>
                         <td>{{ $idp->resources_required }}</td>
-                        <td>{{ $idp->review_date ? \Carbon\Carbon::parse($idp->review_date)->format('d M Y') : '' }}</td>
+                        <td>{{ $idp->review_date ?? '' }}</td>
                         <td>
                             @if (is_null($idp->attainment))
                                 —

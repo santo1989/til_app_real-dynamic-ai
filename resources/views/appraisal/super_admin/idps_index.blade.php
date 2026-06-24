@@ -89,7 +89,7 @@
                                         {{ $hrDone ? 'Done' : 'Pending' }}
                                     </span>
                                 </td>
-                                <td class="hide-mobile">{{ optional($i->review_date)->format('Y-m-d') ?? '-' }}</td>
+                                <td class="hide-mobile">{{ $i->review_date ?? '-' }}</td>
                                 <td class="text-end">
                                     @php
                                         $reviewRoute = (auth()->user()?->role ?? null) === 'line_manager'

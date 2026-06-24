@@ -41,7 +41,6 @@ class Idp extends Model
     ];
 
     protected $casts = [
-        'review_date' => 'date',
         'signed_by_employee' => 'boolean',
         'signed_by_manager' => 'boolean',
         'employee_signed_at' => 'datetime',

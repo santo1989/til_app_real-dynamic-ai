@@ -54,7 +54,7 @@
                             <div class="mb-3">
                                 <label for="review_date" class="form-label">Review Date <span
                                         class="text-danger">*</span></label>
-                                <input type="date" name="review_date" id="review_date"
+                                <input type="text" name="review_date" id="review_date"
                                     class="form-control @error('review_date') is-invalid @enderror"
                                     value="{{ old('review_date') }}" required>
                                 @error('review_date')

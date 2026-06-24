@@ -38,7 +38,7 @@
                             </tr>
                             <tr>
                                 <th>Review Date</th>
-                                <td>{{ $idp->review_date ? \Carbon\Carbon::parse($idp->review_date)->format('Y-m-d') : 'N/A' }}
+                                <td>{{ $idp->review_date ?? 'N/A' }}
                                 </td>
                             </tr>
                             <tr>
