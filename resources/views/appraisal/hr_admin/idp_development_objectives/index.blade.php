@@ -1,14 +1,13 @@
 @extends('layouts.app')
 @section('content')
-    <x-ui.datatable-card title="IDP Skill Mapping" subtitle="Map skill areas to individual objectives." icon="fa-sitemap"
-        :count="$items->count()" :create-url="route('idp-development-objectives.create')" create-label="Add Mapping">
+    <x-ui.datatable-card title="IDP Skill Areas" subtitle="Master data for IDP skill categories." icon="fa-sitemap"
+        :count="$items->count()" :create-url="route('idp-development-objectives.create')" create-label="Add Skill Area">
         <div class="table-responsive-custom">
             <table class="table table-hover align-middle datatable">
                 <thead class="table-light">
                     <tr>
                         <th>#</th>
-                        <th>Skill Area</th>
-                        <th>Mapped Objectives</th>
+                        <th>Skill Area Name</th>
                         <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -16,7 +15,6 @@
                 <tbody>
                     @foreach ($items as $i => $obj)
                         @php
-                            $mappedObjectives = $obj->individualObjectiveMasters;
                             $statusLabel = $obj->is_active ? 'Active' : 'Inactive';
                             $statusBadge = $obj->is_active ? 'bg-success' : 'bg-secondary';
                         @endphp
@@ -24,13 +22,6 @@
                             <td>{{ $i + 1 }}</td>
                             <td>
                                 <div class="fw-semibold">{{ Str::ucfirst(Str::lower($obj->skill_area ?? '')) }}</div>
-                            </td>
-                            <td>
-                                @forelse($mappedObjectives as $objMap)
-                                    <span class="badge bg-primary mb-1">{{ Str::ucfirst(Str::lower($objMap->title ?? '')) }}</span>
-                                @empty
-                                    <span class="text-muted">—</span>
-                                @endforelse
                             </td>
                             <td>
                                 <span class="badge badge-responsive {{ $statusBadge }}">{{ $statusLabel }}</span>

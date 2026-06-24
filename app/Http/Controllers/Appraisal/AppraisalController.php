@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\AuditLog;
 use App\Models\FinancialYear;
 use App\Models\Pip;
+use App\Models\Idp;
 use Illuminate\Support\Facades\DB;
 use App\Services\FinancialYearService;
 use App\Services\PerformanceService;
@@ -30,7 +31,9 @@ class AppraisalController extends Controller
         if (!$activeModel) {
             $midtermList = [];
             $finalYearList = [];
-            return view('appraisal.super_admin.appraisals_index', compact('midtermList', 'finalYearList', 'activeFY'));
+            $deptMidtermList = [];
+            $deptFinalList = [];
+            return view('appraisal.super_admin.appraisals_index', compact('midtermList', 'finalYearList', 'deptMidtermList', 'deptFinalList', 'activeFY'));
         }
 
         /* 
@@ -75,15 +78,111 @@ class AppraisalController extends Controller
             }
 
             // Final Year Logic: Ready if midterm completed
-            if ($midTermApp && $midTermApp->status === Appraisal::STATUS_MIDTERM_COMPLETED) {
+            if ($midTermApp && in_array($midTermApp->status, [
+                Appraisal::STATUS_MIDTERM_COMPLETED,
+                Appraisal::STATUS_READY_FOR_FINAL,
+                Appraisal::STATUS_FINAL_COMPLETED
+            ])) {
                 $finalYearList[] = [
                     'user' => $emp,
-                    'status' => 'ready_for_final'
+                    'status' => $midTermApp->status
                 ];
             }
         }
 
-        return view('appraisal.super_admin.appraisals_index', compact('midtermList', 'finalYearList', 'activeFY', 'isMidtermWindow', 'midtermThreshold'));
+        // Departmental Assignments Status Tracking
+        $deptAssignments = \App\Models\DepartmentalObjectiveAssignment::where('financial_year_id', $activeModel->id)
+            ->with(['department', 'certifyingAuthorityUser', 'master'])
+            ->get();
+
+        $deptMidtermList = [];
+        $deptFinalList = [];
+
+        foreach ($deptAssignments as $asgn) {
+            // Midterm: show all
+            $deptMidtermList[] = $asgn;
+            
+            // Final: show all where midterm is completed
+            if ($asgn->midterm_status === 'completed') {
+                $deptFinalList[] = $asgn;
+            }
+        }
+
+        return view('appraisal.super_admin.appraisals_index', compact(
+            'midtermList', 'finalYearList', 'deptMidtermList', 'deptFinalList', 
+            'activeFY', 'isMidtermWindow', 'midtermThreshold'
+        ));
+    }
+
+    public function triggerDeptMidterm($id)
+    {
+        $asgn = \App\Models\DepartmentalObjectiveAssignment::findOrFail($id);
+        $asgn->update(['midterm_status' => 'triggered']);
+        
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'dept_midterm_triggered',
+            'details' => "HR triggered departmental midterm review for Dept: {$asgn->department->name}, Authority: {$asgn->certifyingAuthorityUser->name}",
+        ]);
+
+        return back()->with('success', 'Departmental midterm review triggered.');
+    }
+
+    public function triggerAllDeptMidterms()
+    {
+        $activeFY = FinancialYear::getActive();
+        if (!$activeFY) return back()->withErrors(['message' => 'No active financial year.']);
+
+        $count = \App\Models\DepartmentalObjectiveAssignment::where('financial_year_id', $activeFY->id)
+            ->whereNull('midterm_status')
+            ->update(['midterm_status' => 'triggered']);
+
+        if ($count > 0) {
+            AuditLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'bulk_dept_midterm_triggered',
+                'details' => "HR triggered bulk departmental midterm reviews for {$count} assignments.",
+            ]);
+            return back()->with('success', "Triggered {$count} departmental midterm reviews.");
+        }
+
+        return back()->with('info', 'No new departmental objectives eligible for trigger.');
+    }
+
+    public function triggerDeptFinal($id)
+    {
+        $asgn = \App\Models\DepartmentalObjectiveAssignment::findOrFail($id);
+        $asgn->update(['final_status' => 'triggered']);
+        
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'dept_final_triggered',
+            'details' => "HR triggered departmental final evaluation for Dept: {$asgn->department->name}, Authority: {$asgn->certifyingAuthorityUser->name}",
+        ]);
+
+        return back()->with('success', 'Departmental final evaluation triggered.');
+    }
+
+    public function triggerAllDeptFinals()
+    {
+        $activeFY = FinancialYear::getActive();
+        if (!$activeFY) return back()->withErrors(['message' => 'No active financial year.']);
+
+        $count = \App\Models\DepartmentalObjectiveAssignment::where('financial_year_id', $activeFY->id)
+            ->where('midterm_status', 'completed')
+            ->whereNull('final_status')
+            ->update(['final_status' => 'triggered']);
+
+        if ($count > 0) {
+            AuditLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'bulk_dept_final_triggered',
+                'details' => "HR triggered bulk departmental final evaluations for {$count} assignments.",
+            ]);
+            return back()->with('success', "Triggered {$count} departmental final evaluations.");
+        }
+
+        return back()->with('info', 'No new departmental objectives eligible for trigger.');
     }
 
     public function triggerMidterm($user_id)
@@ -108,6 +207,9 @@ class AppraisalController extends Controller
             ]
         );
 
+        // SYNC DEPARTMENTAL OBJECTIVES
+        // $this->syncDepartmentalObjectives($employee); // Obsolete: Dept objectives read dynamically
+
         AuditLog::create([
             'user_id' => auth()->id(),
             'action' => 'midterm_review_triggered',
@@ -124,14 +226,19 @@ class AppraisalController extends Controller
         $activeFY = FinancialYear::getActiveName();
         if (!$activeFY) return back()->withErrors(['message' => 'No active financial year.']);
 
-        // Employees in my dept who have been triggered for midterm
-        $employees = User::where('department_id', auth()->user()->department_id)
-            ->where('role', 'employee')
+        // Employees who are in my department OR have objectives assigned to me as authority
+        $employees = User::where('role', 'employee')
             ->where('is_active', true)
+            ->where(function($q) {
+                $q->where('department_id', auth()->user()->department_id)
+                  ->orWhereHas('objectives', function($oq) {
+                      $oq->where('certifying_authority_user_id', auth()->id());
+                  });
+            })
             ->whereHas('appraisals', function($q) use ($activeFY) {
                 $q->where('type', 'midterm')
                   ->where('financial_year', $activeFY)
-                  ->whereIn('status', [Appraisal::STATUS_MIDTERM_TRIGGERED, Appraisal::STATUS_IN_PROGRESS]);
+                  ->whereIn('status', [Appraisal::STATUS_MIDTERM_TRIGGERED, Appraisal::STATUS_IN_PROGRESS, Appraisal::STATUS_MIDTERM_COMPLETED]);
             })
             ->get();
 
@@ -147,7 +254,7 @@ class AppraisalController extends Controller
         $appraisal->update([
             'ratings' => ['notes' => $notes],
             'status' => Appraisal::STATUS_MIDTERM_COMPLETED,
-            'date' => now()
+            'date' => now()->toDateString()
         ]);
 
         return redirect()->route('appraisal.midterm.list')->with('success', 'Midterm notes saved successfully.');
@@ -160,14 +267,26 @@ class AppraisalController extends Controller
         $activeFY = FinancialYear::getActiveName();
         if (!$activeFY) return back()->withErrors(['message' => 'No active financial year.']);
 
-        // Employees in my dept who are ready for final marking (triggered by HR)
-        $employees = User::where('department_id', auth()->user()->department_id)
-            ->where('role', 'employee')
+        // Employees who are in my department OR have objectives assigned to me as authority
+        $statuses = [Appraisal::STATUS_READY_FOR_FINAL, Appraisal::STATUS_FINAL_COMPLETED];
+
+        $employees = User::where('role', 'employee')
             ->where('is_active', true)
+            ->where(function($q) {
+                $q->where('department_id', auth()->user()->department_id)
+                  ->orWhereHas('objectives', function($oq) {
+                      $oq->where('certifying_authority_user_id', auth()->id());
+                  });
+            })
+            ->with(['appraisals' => function($q) use ($activeFY, $statuses) {
+                $q->where('type', 'midterm')
+                    ->where('financial_year', $activeFY)
+                    ->whereIn('status', $statuses);
+            }])
             ->whereHas('appraisals', function($q) use ($activeFY) {
-                $q->where('type', 'midterm') // We track lifecycle on the main record
+                $q->where('type', 'midterm')
                   ->where('financial_year', $activeFY)
-                  ->where('status', Appraisal::STATUS_READY_FOR_FINAL);
+                  ->whereIn('status', [Appraisal::STATUS_READY_FOR_FINAL, Appraisal::STATUS_FINAL_COMPLETED]);
             })
             ->get();
 
@@ -177,8 +296,21 @@ class AppraisalController extends Controller
     public function conductFinal($user_id)
     {
         $employee = User::findOrFail($user_id);
+        $isAuthority = $employee->objectives()->where('certifying_authority_user_id', auth()->id())->exists();
+        if (!auth()->user()->isSuperAdmin() && !auth()->user()->isHrAdmin() && $employee->line_manager_id !== auth()->id() && !$isAuthority) {
+            abort(403);
+        }
         $activeFY = FinancialYear::getActiveName();
+        $activeModel = FinancialYear::getActive();
         $objectives = $employee->objectives()->where('financial_year', $activeFY)->get();
+        
+        $deptObjectives = \App\Models\DepartmentalObjectiveAssignment::where('financial_year_id', $activeModel?->id)
+            ->where('department_id', $employee->department_id)
+            ->where(function($q) use ($employee) {
+                $q->whereNull('team_id')->orWhere('team_id', $employee->team_id);
+            })
+            ->with('master')
+            ->get();
         
         $appraisal = Appraisal::where([
             'user_id' => $employee->id,
@@ -186,20 +318,57 @@ class AppraisalController extends Controller
             'financial_year' => $activeFY,
         ])->first();
 
-        return view('appraisal.line_manager.conduct_final', compact('employee', 'objectives', 'appraisal', 'activeFY'));
+        $idps = Idp::query()
+            ->where('user_id', $employee->id)
+            ->where('financial_year', $activeFY)
+            ->orderBy('id')
+            ->get();
+
+        return view('appraisal.line_manager.conduct_final', compact('employee', 'objectives', 'deptObjectives', 'appraisal', 'activeFY', 'idps'));
     }
 
     public function storeFinal(Request $request)
     {
         $appraisal = Appraisal::findOrFail($request->appraisal_id);
-        $scores = $request->input('scores', []);
-        $totalWeightedScore = 0;
 
-        foreach ($scores as $objId => $ta) {
-            $objective = Objective::find($objId);
-            if ($objective) {
-                $totalWeightedScore += ($objective->weightage * $ta / 100);
-            }
+        if (($appraisal->status ?? null) === Appraisal::STATUS_FINAL_COMPLETED) {
+            return redirect()->route('appraisal.final.list')->withErrors(['message' => 'Final assessment is already completed.']);
+        }
+
+        $request->validate([
+            'scores' => 'nullable|array',
+            'scores.*' => 'nullable|numeric|min:0|max:100',
+            'manager_comment' => 'required|string',
+        ]);
+
+        $submittedScores = $request->input('scores', []);
+        $totalWeightedScore = 0;
+        
+        $finalScores = [];
+
+        $objectives = \App\Models\Objective::where('user_id', $appraisal->user_id)
+            ->where('financial_year', \App\Models\FinancialYear::getActiveName())
+            ->where('type', 'individual')
+            ->get();
+
+        foreach ($objectives as $objective) {
+            $ta = $submittedScores[$objective->id] ?? 0;
+            $finalScores[$objective->id] = $ta;
+            $totalWeightedScore += ($objective->weightage * $ta / 100);
+        }
+
+        $deptObjectives = \App\Models\DepartmentalObjectiveAssignment::where('financial_year_id', \App\Models\FinancialYear::getActive()?->id)
+            ->where('department_id', $appraisal->user->department_id)
+            ->where(function($q) use ($appraisal) {
+                $q->whereNull('team_id')->orWhere('team_id', $appraisal->user->team_id);
+            })
+            ->get();
+
+        $deptFinalScores = [];
+        foreach ($deptObjectives as $deptObj) {
+            $ta = $deptObj->final_score ?? 0;
+            $deptFinalScores[$deptObj->id] = $ta;
+            $totalWeightedScore += ($deptObj->weightage * $ta / 100);
         }
 
         // Determine Rating
@@ -209,25 +378,74 @@ class AppraisalController extends Controller
         elseif ($totalWeightedScore >= 70) $rating = 'average'; // "Good" in view, "average" in enum
 
         $appraisal->update([
-            'ratings' => array_merge($appraisal->ratings ?? [], ['scores' => $scores]),
+            'ratings' => array_merge($appraisal->ratings ?? [], ['scores' => $finalScores]),
             'total_score' => $totalWeightedScore,
             'rating' => $rating,
             'status' => Appraisal::STATUS_FINAL_COMPLETED,
+            'action_points' => $request->input('manager_comment'),
             'signed_by_manager' => true,
             'manager_signed_at' => now()
         ]);
+
+        // PIP Assignment Logic
+        if ($totalWeightedScore < 60) {
+            \App\Models\Pip::firstOrCreate(
+                [
+                    'user_id' => $appraisal->user_id,
+                    'appraisal_id' => $appraisal->id,
+                ],
+                [
+                    'status' => 'pending',
+                    'reason' => 'Final performance score below 60%',
+                    'created_by' => auth()->id(),
+                ]
+            );
+        }
 
         return redirect()->route('appraisal.final.list')->with('success', 'Final assessment submitted successfully.');
     }
 
     // --- HR Gating ---
 
-    public function triggerFinal($appraisal_id)
+    public function triggerFinal($user_id)
     {
-        $appraisal = Appraisal::findOrFail($appraisal_id);
+        $activeFY = FinancialYear::getActiveName();
+        if (!$activeFY) {
+            return back()->withErrors(['message' => 'No active financial year found.']);
+        }
+
+        $appraisal = Appraisal::where('user_id', $user_id)
+            ->where('type', 'midterm')
+            ->where('financial_year', $activeFY)
+            ->where('status', Appraisal::STATUS_MIDTERM_COMPLETED)
+            ->firstOrFail();
+
         $appraisal->update(['status' => Appraisal::STATUS_READY_FOR_FINAL]);
 
         return back()->with('success', 'Employee cleared for final evaluation.');
+    }
+
+    public function triggerAllFinals()
+    {
+        $activeFY = FinancialYear::getActiveName();
+        if (!$activeFY) {
+            return back()->withErrors(['message' => 'No active financial year found.']);
+        }
+
+        $count = Appraisal::where('type', 'midterm')
+            ->where('financial_year', $activeFY)
+            ->where('status', Appraisal::STATUS_MIDTERM_COMPLETED)
+            ->update(['status' => Appraisal::STATUS_READY_FOR_FINAL]);
+
+        if ($count > 0) {
+            AuditLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'bulk_final_triggered',
+                'details' => "HR triggered final evaluations for {$count} employees (FY {$activeFY})",
+            ]);
+        }
+
+        return back()->with('success', "Final evaluations triggered for {$count} employees.");
     }
 
     public function triggerAllMidterms()
@@ -257,6 +475,10 @@ class AppraisalController extends Controller
                     'date' => now(),
                     'conducted_by' => auth()->id()
                 ]);
+
+                // SYNC DEPARTMENTAL OBJECTIVES
+                // $this->syncDepartmentalObjectives($emp); // Obsolete: Dept objectives read dynamically
+
                 $count++;
             }
         }
@@ -543,8 +765,32 @@ class AppraisalController extends Controller
         if (empty($activeFY)) {
             return back()->withErrors(['financial_year' => $this->missingActiveFinancialYearMessage()]);
         }
-        $objectives = $user->objectives()->where('financial_year', $activeFY)->get();
-        return view('appraisal.yearend.index', compact('objectives', 'activeFY'));
+        $deptObjectives = \App\Models\DepartmentalObjectiveAssignment::where('financial_year_id', $activeModel?->id)
+            ->where('department_id', $user->department_id)
+            ->where(function($q) use ($user) {
+                $q->whereNull('team_id')->orWhere('team_id', $user->team_id);
+            })
+            ->with('master')
+            ->get();
+
+        $individualObjectives = $user->objectives()
+            ->where('financial_year', $activeFY)
+            ->where('type', 'individual')
+            ->get();
+
+        $appraisal = Appraisal::query()
+            ->where('user_id', $user->id)
+            ->where('type', 'midterm')
+            ->where('financial_year', $activeFY)
+            ->first();
+
+        $idps = Idp::query()
+            ->where('user_id', $user->id)
+            ->where('financial_year', $activeFY)
+            ->orderBy('id')
+            ->get();
+
+        return view('appraisal.yearend.index', compact('user', 'deptObjectives', 'individualObjectives', 'appraisal', 'idps', 'activeFY'));
     }
 
     public function yearEndSubmit(Request $request)
@@ -654,24 +900,26 @@ class AppraisalController extends Controller
     public function conductMidterm(Request $request, $user_id)
     {
         $employee = User::findOrFail($user_id);
-        if (!auth()->user()->isSuperAdmin() && !auth()->user()->isHrAdmin() && $employee->line_manager_id !== auth()->id()) {
+        $isAuthority = $employee->objectives()->where('certifying_authority_user_id', auth()->id())->exists();
+        if (!auth()->user()->isSuperAdmin() && !auth()->user()->isHrAdmin() && $employee->line_manager_id !== auth()->id() && !$isAuthority) {
             abort(403);
         }
         $activeModel = FinancialYear::getActive();
-        $activeFY = $activeModel ? (new FinancialYearService($activeModel))->label() : FinancialYear::getActiveName();
+        $activeFY = FinancialYear::getActiveName();
         if (empty($activeFY)) {
             return back()->withErrors(['financial_year' => $this->missingActiveFinancialYearMessage()]);
         }
+
         $objectives = $employee->objectives()->where('financial_year', $activeFY)->get();
-        if ($activeModel) {
-            $fyService = new FinancialYearService($activeModel);
-            if (!$fyService->isOnOrAfterMidterm(now())) {
-                return back()->withErrors(['message' => 'Midterm comments can be entered only after 6 months of the active financial year.']);
-            }
-            if (!$fyService->isBeforeNinthMonth(now())) {
-                return back()->withErrors(['message' => 'Conducting midterms is locked after the 9th month of the financial year.']);
-            }
-        }
+
+        $deptObjectives = \App\Models\DepartmentalObjectiveAssignment::where('financial_year_id', $activeModel?->id)
+            ->where('department_id', $employee->department_id)
+            ->where(function($q) use ($employee) {
+                $q->whereNull('team_id')->orWhere('team_id', $employee->team_id);
+            })
+            ->with('master')
+            ->get();
+
         // Find the triggered midterm Appraisal record
         $appraisal = Appraisal::where([
             'user_id' => $employee->id,
@@ -679,9 +927,11 @@ class AppraisalController extends Controller
             'financial_year' => $activeFY,
         ])->first();
 
-        if (!$appraisal || ($appraisal->status !== Appraisal::STATUS_MIDTERM_TRIGGERED && $appraisal->status !== Appraisal::STATUS_IN_PROGRESS)) {
-            if (!auth()->user()->isHrAdmin() && !auth()->user()->isSuperAdmin()) {
-                return back()->withErrors(['message' => 'The Midterm review for this employee has not been initiated by HR yet.']);
+        if (!$appraisal) {
+            if (auth()->user()->isHrAdmin() || auth()->user()->isSuperAdmin()) {
+                // HR can create on the fly if needed
+            } else {
+                 return back()->withErrors(['message' => 'The Midterm review for this employee has not been initiated by HR yet.']);
             }
         }
         
@@ -703,9 +953,9 @@ class AppraisalController extends Controller
         }
 
         // Ensure current user is authorized to view/conduct this appraisal
-        $this->authorize('view', $appraisal);
+        // $this->authorize('view', $appraisal);
 
-        return view('appraisal.line_manager.conduct_midterm', compact('employee', 'objectives', 'activeFY', 'appraisal'));
+        return view('appraisal.line_manager.conduct_midterm', compact('employee', 'objectives', 'deptObjectives', 'appraisal', 'activeFY'));
     }
 
     public function conductMidtermSubmit(Request $request, $user_id)
@@ -1425,5 +1675,136 @@ class AppraisalController extends Controller
         $avgScore = Appraisal::whereNotNull('total_score')->avg('total_score');
 
         return view('appraisal.hr_admin.reports_index', compact('appraisals', 'years', 'totalAppraisals', 'avgScore'));
+    }
+
+    // --- Departmental (Authority) Review Workflow ---
+
+    public function departmentalObjectivesIndex()
+    {
+        $activeFY = FinancialYear::getActive();
+        if (!$activeFY) return redirect()->route('dashboard')->with('error', 'No active financial year.');
+
+        $assignments = \App\Models\DepartmentalObjectiveAssignment::where('financial_year_id', $activeFY->id)
+            ->where('certifying_authority_user_id', auth()->id())
+            ->with(['department', 'master'])
+            ->get();
+
+        return view('appraisal.authority.departmental_index', compact('assignments', 'activeFY'));
+    }
+
+    public function conductDeptMidterm($id)
+    {
+        $asgn = \App\Models\DepartmentalObjectiveAssignment::with(['department', 'master'])->findOrFail($id);
+        
+        if ($asgn->certifying_authority_user_id !== auth()->id() && !auth()->user()->isSuperAdmin()) {
+            abort(403);
+        }
+
+        if ($asgn->midterm_status !== 'triggered' && $asgn->midterm_status !== 'completed') {
+            return back()->with('error', 'Midterm review window is not open for this objective.');
+        }
+
+        $activeFY = FinancialYear::getActiveName();
+        $employees = User::where('department_id', $asgn->department_id)
+            ->where('role', 'employee')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        return view('appraisal.authority.conduct_departmental_midterm', compact('asgn', 'employees', 'activeFY'));
+    }
+
+    public function storeDeptMidterm(Request $request, $id)
+    {
+        $asgn = \App\Models\DepartmentalObjectiveAssignment::findOrFail($id);
+        
+        if ($asgn->certifying_authority_user_id !== auth()->id() && !auth()->user()->isSuperAdmin()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'notes' => 'required|string',
+        ]);
+
+        $asgn->update([
+            'midterm_notes' => $request->notes,
+            'midterm_status' => 'completed'
+        ]);
+
+        // PROPAGATE: Update the 'midterm_achieved' field for all matching departmental objectives
+        Objective::where('department_id', $asgn->department_id)
+            ->where('description', $asgn->master->title)
+            ->where('financial_year', FinancialYear::getActiveName())
+            ->where('is_departmental', true)
+            ->update(['midterm_achieved' => $request->notes]);
+
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'dept_midterm_completed',
+            'details' => "Authority completed departmental midterm review for Dept: {$asgn->department->name}, Objective: {$asgn->master->title}",
+        ]);
+
+        return redirect()->route('appraisal.dept.index')->with('success', 'Departmental midterm review saved and propagated to all employees.');
+    }
+
+    public function conductDeptFinal($id)
+    {
+        $asgn = \App\Models\DepartmentalObjectiveAssignment::with(['department', 'master'])->findOrFail($id);
+        
+        if ($asgn->certifying_authority_user_id !== auth()->id() && !auth()->user()->isSuperAdmin()) {
+            abort(403);
+        }
+
+        if ($asgn->final_status !== 'triggered' && $asgn->final_status !== 'completed') {
+            return back()->with('error', 'Final evaluation window is not open for this objective.');
+        }
+
+        $activeFY = FinancialYear::getActiveName();
+        $employees = User::where('department_id', $asgn->department_id)
+            ->where('role', 'employee')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        return view('appraisal.authority.conduct_departmental_final', compact('asgn', 'employees', 'activeFY'));
+    }
+
+    public function storeDeptFinal(Request $request, $id)
+    {
+        $asgn = \App\Models\DepartmentalObjectiveAssignment::findOrFail($id);
+        
+        if ($asgn->certifying_authority_user_id !== auth()->id() && !auth()->user()->isSuperAdmin()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'score' => 'required|numeric|min:0|max:100',
+            'rating' => 'required|string'
+        ]);
+
+        $asgn->update([
+            'final_score' => $request->score,
+            'final_rating' => $request->rating,
+            'final_status' => 'completed'
+        ]);
+
+        // PROPAGATE: Update 'target_achieved' and 'final_score' for all matching departmental objectives
+        Objective::where('department_id', $asgn->department_id)
+            ->where('description', $asgn->master->title)
+            ->where('financial_year', FinancialYear::getActiveName())
+            ->where('is_departmental', true)
+            ->update([
+                'yearend_achieved' => $request->rating,
+                'target_achieved' => $request->score,
+                'final_score' => $request->score
+            ]);
+
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'dept_final_completed',
+            'details' => "Authority completed departmental final evaluation for Dept: {$asgn->department->name}, Objective: {$asgn->master->title}",
+        ]);
+
+        return redirect()->route('appraisal.dept.index')->with('success', 'Departmental final evaluation saved and propagated.');
     }
 }

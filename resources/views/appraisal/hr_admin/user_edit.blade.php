@@ -2,15 +2,6 @@
 
 @section('content')
     @php
-        $roleOptions = [
-            'employee' => 'Employee',
-            'line_manager' => 'Line Manager',
-            'dept_head' => 'Department Head',
-            'board' => 'Board Member',
-            'hr_admin' => 'HR Admin',
-            'super_admin' => 'Super Admin',
-        ];
-
         $departmentOptions = [];
         foreach ($departments as $dept) {
             $departmentOptions[$dept->id] = $dept->name;
@@ -22,7 +13,7 @@
         }
     @endphp
 
-    <x-ui.datatable-card title="Edit User" subtitle="{{ $user->name }}" icon="fa-user-pen" body-class="p-3">
+    <x-ui.datatable-card title="Edit User" subtitle="{{ old('name', $user->name) }}" icon="fa-user-pen" body-class="p-3">
         <x-slot name="actions">
             <x-ui.button variant="secondary" href="{{ route('users.index') }}" class="btn-sm">
                 <i class="fas fa-arrow-left me-1"></i> Back
@@ -45,14 +36,14 @@
                 </div>
 
                 <x-ui.form-field name="name" label="Full Name" required="true" col="col-12 col-lg-6"
-                    value="{{ $user->name }}" placeholder="Enter full name" autocomplete="name" />
+                    value="{{ old('name', $user->name) }}" placeholder="Enter full name" autocomplete="name" />
                 <x-ui.form-field name="employee_id" label="Employee ID" col="col-12 col-lg-6"
-                    value="{{ $user->employee_id }}" placeholder="e.g., 00472" />
+                    value="{{ old('employee_id', $user->employee_id) }}" placeholder="e.g., 00472" />
                 <x-ui.form-field name="email" label="Email Address" type="email" required="true"
-                    col="col-12 col-lg-6" value="{{ $user->email }}" placeholder="name@company.com"
+                    col="col-12 col-lg-6" value="{{ old('email', $user->email) }}" placeholder="name@company.com"
                     autocomplete="email" />
                 <x-ui.form-select name="role" label="Role" required="true" col="col-12 col-lg-6"
-                    :options="$roleOptions" selected="{{ $user->role }}" />
+                    :options="$roleOptions" :selected="$user->role" />
 
                 <div class="col-12 mt-2"></div>
                 <div class="col-12">
@@ -62,10 +53,10 @@
 
                 <x-ui.form-select name="department_id" label="Department" col="col-12 col-lg-6"
                     placeholder="-- Select Department --" :options="$departmentOptions"
-                    selected="{{ $user->department_id }}" />
+                    :selected="$user->department_id" />
                 <x-ui.form-select name="line_manager_id" label="Line Manager" col="col-12 col-lg-6"
                     placeholder="-- Select Line Manager --" :options="$lineManagerOptions"
-                    selected="{{ $user->line_manager_id }}" />
+                    :selected="$user->line_manager_id" />
 
                 <div class="col-12 mt-2"></div>
                 <div class="col-12">
@@ -78,7 +69,7 @@
                 <x-ui.form-field name="password_confirmation" label="Confirm New Password" type="password"
                     col="col-12 col-lg-6" autocomplete="new-password" />
                 <x-ui.form-field name="password_plain" label="Plain Password (optional)" col="col-12 col-lg-6"
-                    value="{{ $user->password_plain }}"
+                    value="{{ old('password_plain', $user->password_plain) }}"
                     help="If you need to record a plain password for onboarding, enter it here." />
                 <div class="col-12 col-lg-6">
                     <x-ui.form-file name="user_image" label="Profile Image (optional)" accept="image/*" />

@@ -2,15 +2,6 @@
 
 @section('content')
     @php
-        $roleOptions = [
-            'employee' => 'Employee',
-            'line_manager' => 'Line Manager',
-            'dept_head' => 'Department Head',
-            'board' => 'Board Member',
-            'hr_admin' => 'HR Admin',
-            'super_admin' => 'Super Admin',
-        ];
-
         $departmentOptions = [];
         foreach ($departments as $dept) {
             $departmentOptions[$dept->id] = $dept->name;
@@ -47,7 +38,7 @@
                 <x-ui.form-field name="email" label="Email Address" type="email" required="true"
                     col="col-12 col-lg-6" placeholder="name@company.com" autocomplete="email" />
                 <x-ui.form-select name="role" label="Role" required="true" col="col-12 col-lg-6"
-                    :options="$roleOptions" selected="{{ old('role', 'employee') }}" />
+                    :options="$roleOptions" :selected="'employee'" />
 
                 <div class="col-12 mt-2"></div>
                 <div class="col-12">

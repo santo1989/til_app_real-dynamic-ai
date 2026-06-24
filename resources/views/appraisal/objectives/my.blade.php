@@ -78,7 +78,7 @@
                             </td>
                         </tr>
                         @foreach($deptObjectives as $index => $dept)
-                        <tr class="bg-light text-muted opacity-75">
+                         <tr class="bg-light text-muted opacity-75">
                             <td class="text-center small fw-bold">{{ $index + 1 }}</td>
                             <td class="px-4 py-3 h6 mb-0">{{ $dept->master->title }}</td>
                             <td class="px-4 py-3 small fw-bold">{{ $dept->department->name ?? 'SYSTEM' }}</td>

@@ -1,22 +1,14 @@
 @extends('layouts.app')
-
+ 
 @section('content')
-    @php
-        foreach (App\Models\IndividualObjectiveMaster::where('is_active', true)->orderBy('title')->get() as $obj) {
-            $objectiveOptions[$obj->id] = Str::ucfirst(Str::lower($obj->title ?? ''));
-        }
-
-        $mappedId = $item->individualObjectiveMasters->first()?->id ?? '';
-    @endphp
-
-    <x-ui.datatable-card title="{{ $item->exists ? 'Edit' : 'Create' }} IDP Skill Mapping" subtitle="{{ $item->exists ? Str::ucfirst(Str::lower($item->skill_area ?? '')) : 'Map a skill area to an individual objective' }}" icon="fa-sitemap" body-class="p-3">
+    <x-ui.datatable-card title="{{ $item->exists ? 'Edit' : 'Create' }} IDP Skill Area" subtitle="{{ $item->exists ? Str::ucfirst(Str::lower($item->skill_area ?? '')) : 'Define a skill area category for IDPs' }}" icon="fa-sitemap" body-class="p-3">
         <x-slot name="actions">
             <x-ui.button variant="secondary" href="{{ route('idp-development-objectives.index') }}" class="btn-sm">
                 <i class="fas fa-arrow-left me-1"></i> Back
             </x-ui.button>
             @if($item->exists)
             <button class="btn btn-sm btn-outline-danger" type="button"
-                onclick="if(confirm('Delete this mapping?')) document.getElementById('delete-form').submit()">
+                onclick="if(confirm('Delete this skill area?')) document.getElementById('delete-form').submit()">
                 <i class="fas fa-trash me-1"></i> Delete
             </button>
             @endif
@@ -31,22 +23,19 @@
 
             <div class="row g-3">
                 <div class="col-12">
-                    <div class="fw-semibold">Mapping Details</div>
-                    <div class="text-muted small">Select the individual objective and skill area.</div>
+                    <div class="fw-semibold">Skill Area Details</div>
+                    <div class="text-muted small">Enter the name of the skill area that will be available in IDP selection.</div>
                 </div>
 
-                <x-ui.form-select name="objective_master_id" label="Individual Objective" col="col-12 col-lg-6"
-                    :options="$objectiveOptions" selected="{{ old('objective_master_id', $mappedId) }}" />
-
-                <x-ui.form-field name="skill_area" label="Skill Area" required="true" col="col-12 col-lg-6"
-                    value="{{ old('skill_area', $item->skill_area ?? '') }}" placeholder="e.g., Advanced Excel" />
+                <x-ui.form-field name="skill_area" label="Skill Area Name" required="true" col="col-12 col-lg-6"
+                    value="{{ old('skill_area', $item->skill_area ?? '') }}" placeholder="e.g., ADVANCED EXCEL" />
 
                 <div class="col-12 col-lg-6">
                     <div class="form-check form-switch mt-4">
                         <input type="hidden" name="is_active" value="0">
                         <input class="form-check-input" type="checkbox" name="is_active" value="1" id="is_active"
                             {{ old('is_active', $item->is_active ?? true) ? 'checked' : '' }}>
-                        <label class="form-check-label" for="is_active">Active</label>
+                        <label class="form-check-label fw-semibold" for="is_active">Active Status</label>
                     </div>
                     <div class="text-muted small">Inactive skill areas won't appear in employee IDP selection.</div>
                 </div>
@@ -57,7 +46,7 @@
                     Cancel
                 </x-ui.button>
                 <x-ui.button variant="primary" type="submit">
-                    <i class="fas fa-check me-1"></i> {{ $item->exists ? 'Update' : 'Create' }} Mapping
+                    <i class="fas fa-check me-1"></i> {{ $item->exists ? 'Update' : 'Save' }} Skill Area
                 </x-ui.button>
             </div>
         </form>

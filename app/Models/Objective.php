@@ -9,7 +9,18 @@ class Objective extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['user_id', 'department_id', 'type', 'description', 'weightage', 'target', 'certifying_authority', 'status', 'revised_at', 'financial_year', 'created_by', 'approved_by', 'approved_at', 'target_achieved', 'target_achieved_entered_by', 'target_achieved_entered_at', 'final_score'];
+    protected $fillable = [
+        'user_id', 'department_id', 'type', 'description', 'weightage', 'target', 
+        'certifying_authority', 'certifying_authority_user_id', 'is_departmental',
+        'timeline', 'status', 'revised_at', 'financial_year', 'created_by', 
+        'approved_by', 'approved_at', 'target_achieved', 'target_achieved_entered_by', 
+        'target_achieved_entered_at', 'final_score'
+    ];
+
+    public function certifyingAuthorityUser()
+    {
+        return $this->belongsTo(User::class, 'certifying_authority_user_id');
+    }
 
     protected $casts = [
         'revised_at' => 'datetime',

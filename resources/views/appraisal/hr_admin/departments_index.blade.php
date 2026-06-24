@@ -8,7 +8,6 @@
                 <thead class="table-light">
                     <tr>
                         <th>#</th>
-                        <th class="hide-mobile">Code</th>
                         <th>Name</th>
                         <th>Head</th>
                         <th class="hide-mobile">Users</th>
@@ -19,13 +18,12 @@
                     @foreach ($departments as $i => $d)
                         <tr>
                             <td>{{ $i + 1 }}</td>
-                            <td class="hide-mobile">{{ $d->code ?? '-' }}</td>
                             <td>
                                 <div class="fw-semibold">{{ $d->name }}</div>
                             </td>
                             <td>{{ $d->head->name ?? '-' }}</td>
                             <td class="hide-mobile">
-                                <span class="badge bg-light text-dark">{{ $d->users_count ?? 0 }}</span>
+                                 <span class="badge bg-light text-dark">{{ $d->users_count ?? 0 }}</span>
                             </td>
                             <td class="text-end">
                                 <div class="d-inline-flex gap-1">

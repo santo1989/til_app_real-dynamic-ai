@@ -51,9 +51,9 @@
                                     $totalSet = 30 + $user->individual_weight;
                                 @endphp
                                 @if($totalSet >= 100)
-                                    <span class="badge bg-soft-success text-success px-3 border border-success">Complete</span>
+                                     <span class="badge bg-success text-white px-3 border border-success">Complete</span>
                                 @else
-                                    <span class="badge bg-soft-warning text-warning px-3 border border-warning">Pending {{ 100 - $totalSet }}%</span>
+                                     <span class="badge bg-warning text-dark px-3 border border-warning">Pending {{ 100 - $totalSet }}%</span>
                                 @endif
                             </td>
                             <td class="text-end">

@@ -154,8 +154,13 @@
                     <input type="hidden" name="user_id" value="{{ $idp->user_id }}">
 
                     <div class="row g-3">
+                        <div class="col-12 mb-2">
+                            <h5 class="fw-bold text-success"><i class="fas fa-user-edit me-2"></i>Employee Input</h5>
+                            <hr class="mt-1 mb-3">
+                        </div>
+
                         <div class="col-md-6">
-                            <label class="idp-label">Skill Area</label>
+                            <label class="idp-label fw-bold text-dark"><i class="fas fa-star text-warning me-1"></i> Skill area</label>
                             <select name="skill_area" class="form-control idp-input" id="skill_area_select">
                                 <option value="">Select skill area</option>
                                 @foreach ($idpSkillAreaOptions ?? collect() as $opt)
@@ -167,36 +172,56 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="idp-label">Review Date</label>
+                            <label class="idp-label fw-bold text-dark"><i class="fas fa-calendar-alt text-primary me-1"></i> Deadline/ Timeline</label>
                             <input type="date" name="review_date" class="form-control idp-input"
                                 value="{{ old('review_date', optional($idp->review_date)->format('Y-m-d') ?? $idp->review_date) }}"
                                 required />
                         </div>
                         <div class="col-md-12">
-                            <label class="idp-label">Development Objective</label>
-                            <textarea name="description" class="form-control idp-input" rows="3" required>{{ old('description', $idp->description_sentence_case ?? $idp->description) }}</textarea>
+                            <label class="idp-label fw-bold text-dark"><i class="fas fa-seedling text-success me-1"></i> Development Objective</label>
+                            <textarea name="description" class="form-control idp-input" rows="3" required placeholder="What skill/behavior do you want to develop and what is the end goal?">{{ old('description', $idp->description_sentence_case ?? $idp->description) }}</textarea>
                         </div>
                         <div class="col-md-6">
-                            <label class="idp-label">Expected Benefits</label>
+                            <label class="idp-label fw-bold text-dark">Expected Benefits</label>
                             <textarea name="expected_benefits" class="form-control idp-input" rows="3">{{ old('expected_benefits', $idp->expected_benefits_sentence_case ?? $idp->expected_benefits) }}</textarea>
                         </div>
                         <div class="col-md-6">
-                            <label class="idp-label">Development Action Plan</label>
+                            <label class="idp-label fw-bold text-dark">Development Action Plan</label>
                             <textarea name="action_plan" class="form-control idp-input" rows="3">{{ old('action_plan', $idp->action_plan_sentence_case ?? $idp->action_plan) }}</textarea>
                         </div>
-                        <div class="col-md-6">
-                            <label class="idp-label">Resources Required</label>
-                            <textarea name="resources_required" class="form-control idp-input" rows="3">{{ old('resources_required', $idp->resources_required_sentence_case ?? $idp->resources_required) }}</textarea>
+                        <div class="col-md-12">
+                            <label class="idp-label fw-bold text-dark">Resources Required</label>
+                            <textarea name="resources_required" class="form-control idp-input" rows="2">{{ old('resources_required', $idp->resources_required_sentence_case ?? $idp->resources_required) }}</textarea>
                         </div>
+
+                        <div class="col-12 mt-4 mb-2">
+                            <h5 class="fw-bold text-muted"><i class="fas fa-user-check me-2"></i>Review & HR Input (Read-only)</h5>
+                            <hr class="mt-1 mb-3">
+                        </div>
+
                         <div class="col-md-6">
-                            <label class="idp-label">Progress till December</label>
-                            <textarea name="progress_till_dec" class="form-control idp-input" rows="3">{{ old('progress_till_dec', $idp->progress_till_dec_sentence_case ?? $idp->progress_till_dec) }}</textarea>
+                            <label class="idp-label text-muted">Attainment of Individual Development Plan:</label>
+                            <div class="p-2 bg-light border rounded small text-dark fw-bold">
+                                {{ is_null($idp->attainment) ? 'Not Yet Reviewed' : ($idp->attainment ? 'YES' : 'NO') }}
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="idp-label text-muted">If yes, whether there is visible demonstration of use of the learning</label>
+                            <textarea class="form-control idp-input bg-light" rows="2" readonly>{{ $idp->visible_demonstration ?? 'No demonstration recorded yet.' }}</textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="idp-label text-muted">HR Input</label>
+                            <textarea class="form-control idp-input bg-light" rows="2" readonly>{{ $idp->hr_input ?? 'No HR input yet.' }}</textarea>
                         </div>
                     </div>
 
-                    <div class="mt-3">
-                        <button type="submit" class="btn btn-outline-primary">Update IDP</button>
-                        <a href="{{ route('idp.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                    <div class="mt-4 pt-3 border-top">
+                        <button type="submit" class="btn btn-success px-4">
+                            <i class="fas fa-check me-1"></i> Update My IDP
+                        </button>
+                        <a href="{{ route('idp.index') }}" class="btn btn-outline-secondary px-4">Cancel</a>
                     </div>
                 </form>
 

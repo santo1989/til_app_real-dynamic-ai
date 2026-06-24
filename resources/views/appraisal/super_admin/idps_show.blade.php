@@ -12,12 +12,14 @@
                                 class="btn-sm">Edit</x-ui.button>
                             <x-ui.button variant="secondary" href="{{ route('idps.index') }}" class="btn-sm">Back to
                                 List</x-ui.button>
-                            <form action="{{ route('idps.destroy', $idp) }}" method="POST" class="d-inline"
-                                onsubmit="return confirm('Are you sure you want to delete this IDP?');">
-                                @csrf
-                                @method('DELETE')
-                                <x-ui.button variant="danger" type="submit" class="btn-sm">Delete</x-ui.button>
-                            </form>
+                            @if ((auth()->user()?->role ?? null) === 'super_admin')
+                                <form action="{{ route('idps.destroy', $idp) }}" method="POST" class="d-inline"
+                                    onsubmit="return confirm('Are you sure you want to delete this IDP?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <x-ui.button variant="danger" type="submit" class="btn-sm">Delete</x-ui.button>
+                                </form>
+                            @endif
                         </div>
                     </div>
                     <div class="card-body">

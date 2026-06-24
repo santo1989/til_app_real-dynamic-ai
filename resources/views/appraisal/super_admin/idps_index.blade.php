@@ -10,7 +10,7 @@
                         <i class="fas fa-plus"></i> Create IDP
                     </a>
                 @endcan
-                <span class="badge bg-light text-dark">
+                 <span class="badge bg-light text-dark">
                     <i class="fas fa-sync-alt"></i> Auto-refresh: 30s
                 </span>
                 <button class="btn btn-sm btn-outline-light" onclick="AutoRefresh.manualRefresh('idps-table-container')">
@@ -52,11 +52,24 @@
                             <th>User</th>
                             <th class="hide-mobile">Description</th>
                             <th>Status</th>
+                            <th class="hide-mobile">LM</th>
+                            <th class="hide-mobile">HR</th>
                             <th class="hide-mobile">Review Date</th>
+                            <th class="text-end">Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($idps as $i)
+                            @php
+                                $lmReviewed =
+                                    !empty(trim((string) ($i->expected_benefits ?? ''))) ||
+                                    !empty(trim((string) ($i->action_plan ?? ''))) ||
+                                    !empty(trim((string) ($i->resources_required ?? ''))) ||
+                                    !empty($i->review_date) ||
+                                    !is_null($i->attainment) ||
+                                    !empty(trim((string) ($i->visible_demonstration ?? '')));
+                                $hrDone = !empty(trim((string) ($i->hr_input ?? '')));
+                            @endphp
                             <tr>
                                 <td>{{ $i->id }}</td>
                                 <td class="text-truncate-mobile">{{ $i->user->name ?? 'N/A' }}</td>
@@ -66,7 +79,27 @@
                                     <span
                                         class="badge badge-responsive bg-{{ $i->status === 'completed' ? 'success' : ($i->status === 'pending' ? 'warning' : 'info') }}">{{ ucfirst($i->status ?? 'n/a') }}</span>
                                 </td>
+                                <td class="hide-mobile">
+                                    <span class="badge {{ $lmReviewed ? 'bg-success' : 'bg-secondary' }}">
+                                        {{ $lmReviewed ? 'Reviewed' : 'Pending' }}
+                                    </span>
+                                </td>
+                                <td class="hide-mobile">
+                                    <span class="badge {{ $hrDone ? 'bg-success' : 'bg-secondary' }}">
+                                        {{ $hrDone ? 'Done' : 'Pending' }}
+                                    </span>
+                                </td>
                                 <td class="hide-mobile">{{ optional($i->review_date)->format('Y-m-d') ?? '-' }}</td>
+                                <td class="text-end">
+                                    @php
+                                        $reviewRoute = (auth()->user()?->role ?? null) === 'line_manager'
+                                            ? route('idp.team.review', $i)
+                                            : route('idp.hr.review', $i);
+                                    @endphp
+                                    <a class="btn btn-sm btn-outline-primary" href="{{ $reviewRoute }}">
+                                        Review
+                                    </a>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

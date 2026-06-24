@@ -97,15 +97,7 @@ class IdpPolicy
 
     public function delete(User $user, Idp $idp)
     {
-        if ($user->isHrAdmin()) {
-            return true;
-        }
-        if ($user->isLineManager()) {
-            if ($idp->user_id === $user->id) return true;
-            if (isset($idp->user) && $idp->user->line_manager_id === $user->id) return true;
-        }
-        // Employees cannot delete IDPs
-        return false;
+        return ($user->role ?? null) === 'super_admin';
     }
 
     public function approve(User $user, Idp $idp)

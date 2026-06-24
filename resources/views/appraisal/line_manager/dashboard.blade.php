@@ -35,7 +35,7 @@
                             <div class="bg-white bg-opacity-25 rounded-circle p-2">
                                 <i class="fas fa-user-tie text-white fs-2"></i>
                             </div>
-                            <span class="badge bg-white text-dark fw-bold px-3 py-2 rounded-pill shadow-sm">
+                             <span class="badge bg-white text-dark fw-bold px-3 py-2 rounded-pill shadow-sm">
                                 Line Manager
                             </span>
                         </div>
@@ -62,7 +62,7 @@
                         <div class="bg-primary-soft p-3 rounded-circle">
                             <i class="fas fa-users text-primary fs-5"></i>
                         </div>
-                        <span class="badge bg-light text-muted">Team</span>
+                          <span class="badge bg-light text-dark">Team</span>
                     </div>
                     <div class="fs-2 fw-bold text-dark">{{ $teamSize }}</div>
                     <div class="small text-muted">Team Members</div>
@@ -78,7 +78,7 @@
                             <div class="bg-warning-soft p-3 rounded-circle">
                                 <i class="fas fa-check-circle text-warning fs-5"></i>
                             </div>
-                            <span class="badge bg-warning text-white">Action</span>
+                             <span class="badge bg-warning text-dark">Action</span>
                         </div>
                         <div class="fs-2 fw-bold text-dark">{{ $pendingApprovals }}</div>
                         <div class="small text-muted">Pending Approvals</div>
@@ -94,7 +94,7 @@
                         <div class="bg-info-soft p-3 rounded-circle">
                             <i class="fas fa-hourglass-half text-info fs-5"></i>
                         </div>
-                        <span class="badge bg-light text-muted">Review</span>
+                          <span class="badge bg-light text-dark">Review</span>
                     </div>
                     <div class="fs-2 fw-bold text-dark">{{ $pendingMidterms }}</div>
                     <div class="small text-muted">Midterm Reviews</div>
@@ -109,7 +109,7 @@
                         <div class="bg-success-soft p-3 rounded-circle">
                             <i class="fas fa-graduation-cap text-success fs-5"></i>
                         </div>
-                        <span class="badge bg-light text-muted">Growth</span>
+                          <span class="badge bg-light text-dark">Growth</span>
                     </div>
                     <div class="fs-2 fw-bold text-dark">{{ $teamIdps }}</div>
                     <div class="small text-muted">Team IDPs</div>
@@ -126,7 +126,7 @@
                 <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
                     <div class="d-flex align-items-center justify-content-between">
                         <h6 class="fw-bold mb-0"><i class="fas fa-tasks me-2 text-success"></i>Action Hub</h6>
-                        <span class="badge bg-success text-white rounded-pill">{{ count($dummyPendingTasks) }} Pending</span>
+                         <span class="badge bg-success text-white rounded-pill">{{ count($dummyPendingTasks) }} Pending</span>
                     </div>
                 </div>
                 <div class="card-body px-4 py-3">

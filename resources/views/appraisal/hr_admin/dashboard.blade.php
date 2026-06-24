@@ -76,8 +76,7 @@
                             <div class="small text-muted">Departments</div>
                         </div>
                     </div>
-                    <div class="pt-2 text-muted small">
-                        Monitoring <strong>{{ $stats['total_teams'] }}</strong> specialized teams
+                                      <div class="small text-muted">Monitoring <strong>{{ $stats['total_teams'] }}</strong> specialized teams
                     </div>
                 </div>
             </div>
@@ -94,8 +93,8 @@
                             <div class="small text-muted">Active IDPs</div>
                         </div>
                     </div>
-                    <div class="pt-2 text-muted small">
-                        Supporting professional growth
+                     <div class="pt-2 text-muted small">
+                         Supporting professional growth
                     </div>
                 </div>
             </div>
@@ -251,7 +250,7 @@
                         @forelse($recentLogs as $log)
                             <div class="list-group-item px-0 border-0 mb-2">
                                 <div class="d-flex align-items-start">
-                                    <div class="bg-light p-2 rounded me-3 text-muted">
+                                     <div class="bg-light p-2 rounded me-3 text-muted">
                                         <i class="fas fa-history"></i>
                                     </div>
                                     <div class="flex-grow-1">

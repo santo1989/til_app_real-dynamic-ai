@@ -28,7 +28,7 @@
                                             <li>
                                                 <span class="badge rounded-pill fw-medium px-3 py-2 border" 
                                                     style="background-color: #e9f5ee; color: #1a6b3b; border-color: #1a6b3b;"
-                                                    title="{{ $assignment->master->title }}">
+                                                    title="{{ $assignment->master->title }} (Authority: {{ $assignment->certifyingAuthorityUser->name ?? 'N/A' }})">
                                                     {{ Str::limit($assignment->master->title, 40) }} ({{ $assignment->weightage }}%)
                                                 </span>
                                             </li>

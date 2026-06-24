@@ -19,6 +19,11 @@ class DepartmentalObjectiveAssignment extends Model
         'weightage',
         'certifying_authority_role',
         'certifying_authority_user_id',
+        'midterm_status',
+        'final_status',
+        'midterm_notes',
+        'final_score',
+        'final_rating',
         'created_by',
     ];
 

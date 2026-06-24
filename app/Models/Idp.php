@@ -27,6 +27,9 @@ class Idp extends Model
         'approved_at',
         'approved_by_role',
         'status',
+        'attainment',
+        'visible_demonstration',
+        'hr_input',
         'signed_by_employee',
         'employee_signed_by_name',
         'employee_signed_at',
@@ -45,6 +48,7 @@ class Idp extends Model
         'manager_signed_at' => 'datetime',
         'is_approved' => 'boolean',
         'approved_at' => 'datetime',
+        'attainment' => 'boolean',
     ];
 
     public function user()

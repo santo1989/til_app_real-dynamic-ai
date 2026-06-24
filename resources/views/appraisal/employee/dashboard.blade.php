@@ -13,7 +13,7 @@
                             <div class="bg-white bg-opacity-25 rounded-circle p-2">
                                 <i class="fas fa-user-circle text-white fs-2"></i>
                             </div>
-                            <span class="badge bg-white text-dark fw-bold px-3 py-2 rounded-pill shadow-sm">
+                              <span class="badge bg-white text-dark fw-bold px-3 py-2 rounded-pill shadow-sm">
                                 {{ auth()->user()->role === 'employee' ? 'Staff Member' : strtoupper(auth()->user()->role) }}
                             </span>
                         </div>
@@ -40,7 +40,7 @@
                         <div class="bg-success-light p-3 rounded-4">
                             <i class="fas fa-bullseye text-success fs-4"></i>
                         </div>
-                        <span class="badge bg-light text-dark fw-bold px-2 py-1 rounded">My Plan</span>
+                          <span class="badge bg-light text-dark fw-bold px-2 py-1 rounded">My Plan</span>
                     </div>
                     <div class="h3 fw-bold text-dark mb-1">{{ $stats['my_objectives'] ?? 0 }}</div>
                     <div class="text-muted small fw-bold text-uppercase ls-1">Objectives Set</div>
@@ -59,7 +59,7 @@
                         <div class="bg-warning-light p-3 rounded-4">
                             <i class="fas fa-hourglass-half text-warning fs-4"></i>
                         </div>
-                        <span class="badge bg-light text-dark fw-bold px-2 py-1 rounded">Cycle 1</span>
+                         <span class="badge bg-light text-dark fw-bold px-2 py-1 rounded">Cycle 1</span>
                     </div>
                     <div class="h3 fw-bold text-dark mb-1">{{ $stats['midterm_due'] ?? 0 }}</div>
                     <div class="text-muted small fw-bold text-uppercase ls-1">Midterm Due</div>
@@ -78,7 +78,7 @@
                         <div class="bg-primary-light p-3 rounded-4">
                             <i class="fas fa-award text-primary fs-4"></i>
                         </div>
-                        <span class="badge bg-light text-dark fw-bold px-2 py-1 rounded">Final</span>
+                         <span class="badge bg-light text-dark fw-bold px-2 py-1 rounded">Final</span>
                     </div>
                     <div class="h3 fw-bold text-dark mb-1">{{ $stats['yearend_due'] ?? 0 }}</div>
                     <div class="text-muted small fw-bold text-uppercase ls-1">Final Review</div>
@@ -97,7 +97,7 @@
                         <div class="bg-info-light p-3 rounded-4">
                             <i class="fas fa-graduation-cap text-info fs-4"></i>
                         </div>
-                        <span class="badge bg-light text-dark fw-bold px-2 py-1 rounded">Growth</span>
+                         <span class="badge bg-light text-dark fw-bold px-2 py-1 rounded">Growth</span>
                     </div>
                     <div class="h3 fw-bold text-dark mb-1">{{ $stats['my_idps'] ?? 0 }}</div>
                     <div class="text-muted small fw-bold text-uppercase ls-1">IDP Milestones</div>

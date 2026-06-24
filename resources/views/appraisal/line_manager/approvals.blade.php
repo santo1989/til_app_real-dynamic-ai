@@ -8,7 +8,7 @@
             <div class="d-flex align-items-center justify-content-between pb-3 border-bottom">
                 <div>
                     <h2 class="fw-bold mb-1" style="color: #1e293b;">Departmental Approvals & Oversight</h2>
-                    <p class="text-muted small mb-0">Managing team performance plans for cycle: <span class="badge bg-success bg-opacity-10 text-success fw-bold px-3">{{ $activeFY }}</span></p>
+                     <p class="text-muted small mb-0">Managing team performance plans for cycle: <span class="badge bg-success text-white fw-bold px-3">{{ $activeFY }}</span></p>
                 </div>
                 <div class="d-flex gap-2">
                     <div class="bg-white border rounded-pill px-3 py-2 shadow-sm d-flex align-items-center">
@@ -43,7 +43,7 @@
                     <tr class="transition-hover">
                         <td class="px-4 py-3">
                             <div class="d-flex align-items-center">
-                                <div class="bg-success bg-opacity-10 text-success rounded-circle me-3 d-flex align-items-center justify-content-center fw-bold" style="width: 42px; height: 42px; font-size: 0.9rem;">
+                                 <div class="bg-success text-white rounded-circle me-3 d-flex align-items-center justify-content-center fw-bold" style="width: 42px; height: 42px; font-size: 0.9rem;">
                                     {{ substr($employee->name, 0, 1) }}
                                 </div>
                                 <div>
@@ -53,7 +53,7 @@
                             </div>
                         </td>
                         <td class="px-4 py-3">
-                            <span class="small fw-medium text-slate-600">{{ $employee->designation ?: 'Team Member' }}</span>
+                             <span class="small fw-medium text-muted">{{ $employee->designation ?: 'Team Member' }}</span>
                         </td>
                         <td class="px-4 py-3 text-center">
                             @if($employee->performance_status === 'approved')
@@ -61,11 +61,11 @@
                                     <i class="fas fa-check-double me-1"></i> Plan Verified
                                 </span>
                             @elseif($employee->performance_status === 'draft')
-                                <span class="badge rounded-pill px-3 py-2 bg-warning-soft text-warning border-warning border-opacity-25" style="background-color: rgba(245, 158, 11, 0.1);">
+                                  <span class="badge rounded-pill px-3 py-2 bg-warning-soft text-dark border-warning border-opacity-25" style="background-color: rgba(245, 158, 11, 0.1);">
                                     <i class="fas fa-pen-nib me-1"></i> Draft Submitted
                                 </span>
                             @else
-                                <span class="badge rounded-pill px-3 py-2 bg-light text-muted border">
+                                  <span class="badge rounded-pill px-3 py-2 bg-light text-dark border">
                                     <i class="fas fa-hourglass-start me-1"></i> Not Started
                                 </span>
                             @endif
@@ -104,9 +104,8 @@
 </div>
 
 <style>
-    .ls-1 { letter-spacing: 0.05em; }
+     .ls-1 { letter-spacing: 0.05em; }
     .smaller { font-size: 0.7rem; }
-    .text-slate-600 { color: #475569; }
     .transition-hover:hover { background-color: #f8fbff; }
     .shadow-sm-hover:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); }
     .transition-all { transition: all 0.3s ease; }

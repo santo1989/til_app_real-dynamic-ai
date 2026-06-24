@@ -216,67 +216,13 @@
             </div>
         </div>
 
-        <div class="row g-4 mb-4">
-            <div class="col-xl-8">
-                <div class="card border-0 shadow-sm h-100 chart-card">
-                    <div
-                        class="card-header bg-transparent border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="fw-bold mb-1">Department Headcount</h5>
-                            <p class="text-muted small mb-0">Top departments ranked by employee count</p>
-                        </div>
-                        <a href="{{ route('departments.index') }}"
-                            class="btn btn-sm btn-outline-success rounded-pill px-3">Manage</a>
-                    </div>
-                    <div class="card-body px-3 px-md-4 pb-4">
-                        <div class="chart-wrap chart-wrap-lg">
-                            <canvas id="departmentComparisonChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-4">
-                <div class="card border-0 shadow-sm h-100 settings-card" id="settings-panel">
-                    <div
-                        class="card-header bg-transparent border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="fw-bold mb-1">Functional Settings</h5>
-                            <p class="text-muted small mb-0">Quick access to all core modules</p>
-                        </div>
-                        <span class="badge rounded-pill bg-success text-white">Ready</span>
-                    </div>
-                    <div class="card-body px-4 pb-4">
-                        <div class="settings-grid">
-                            @foreach ($quickModuleStats ?? [] as $module)
-                                <a href="{{ $module['url'] }}" class="setting-tile">
-                                    <i class="fas {{ $module['icon'] }}"></i>
-                                    <span>{{ $module['label'] }}</span>
-                                    <strong class="setting-count">{{ number_format($module['value'] ?? 0) }}</strong>
-                                </a>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-4 mb-4">
-            <div class="col-lg-12">
-                <div class="card border-0 shadow-sm overflow-hidden">
-                    <div
-                        class="card-header bg-transparent border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div>
-                            <h5 class="fw-bold mb-1">Live Activity Stream</h5>
-                            <p class="text-muted small mb-0">Recent changes from users, objectives, and appraisals</p>
-                        </div>
-                        <div class="d-flex gap-2 flex-wrap">
-                            <button class="btn btn-sm btn-outline-success rounded-pill px-3" data-bs-toggle="tab"
-                                data-bs-target="#activity-users" type="button">Users</button>
-                            <button class="btn btn-sm btn-outline-success rounded-pill px-3" data-bs-toggle="tab"
-                                data-bs-target="#activity-objectives" type="button">Objectives</button>
-                            <button class="btn btn-sm btn-outline-success rounded-pill px-3" data-bs-toggle="tab"
-                                data-bs-target="#activity-appraisals" type="button">Appraisals</button>
-                        </div>
+            <!-- Recent Objectives -->
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                     <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="fas fa-bullseye"></i> Recent Objectives</h6>
+                        <x-ui.button variant="light" href="{{ route('objectives.index') }}" class="btn-sm">View
+                            All</x-ui.button>
                     </div>
                     <div class="card-body p-0">
                         <div class="tab-content p-3 p-md-4">

@@ -29,30 +29,4 @@ class IdpDevelopmentObjective extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
-
-    /**
-     * Get individual objectives linked to this skill area.
-     */
-    public function individualObjectiveMasters(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            IndividualObjectiveMaster::class,
-            'objective_skill_mapping',
-            'skill_area_id',
-            'objective_master_id'
-        );
-    }
-
-    /**
-     * Get departmental objectives linked to this skill area.
-     */
-    public function departmentalObjectiveMasters(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            DepartmentalObjectiveMaster::class,
-            'objective_skill_mapping',
-            'skill_area_id',
-            'objective_master_id'
-        );
-    }
 }

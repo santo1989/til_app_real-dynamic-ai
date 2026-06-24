@@ -40,13 +40,11 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/midterm-review', [App\Http\Controllers\Appraisal\AppraisalController::class, 'midtermSubmit'])->name('appraisals.midterm.submit');
             Route::get('/year-end-self-assessment', [App\Http\Controllers\Appraisal\AppraisalController::class, 'yearEndIndex'])->name('appraisals.yearend');
             Route::post('/year-end-self-assessment', [App\Http\Controllers\Appraisal\AppraisalController::class, 'yearEndSubmit'])->name('appraisals.yearend.submit');
-            Route::resource('idp', App\Http\Controllers\Appraisal\IdpController::class)->only(['index', 'edit', 'store', 'update', 'destroy']);
+            Route::resource('idp', App\Http\Controllers\Appraisal\IdpController::class)->only(['index', 'edit', 'store', 'update']);
             // Developer preview route for unified tabbed UI (non-invasive)
             Route::get('/employee/appraisal-tabs', function () {
                 $user = auth()->user();
-                $objectives = $user
-                    ? \App\Models\Objective::where('user_id', $user->id)->get()
-                    : collect();
+                $objectives = $user ? \App\Models\Objective::where('user_id', $user->id)->get() : collect();
                 return view('appraisal.employee.tabs', compact('objectives'));
             })->name('appraisal.employee.tabs');
         });
@@ -80,6 +78,12 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/team-objectives-manage/{team_objective}/edit', [App\Http\Controllers\Appraisal\ObjectiveController::class, 'teamObjectivesEdit'])->name('team.objectives.edit');
             Route::put('/team-objectives-manage/{team_objective}', [App\Http\Controllers\Appraisal\ObjectiveController::class, 'teamObjectivesUpdate'])->name('team.objectives.update')->middleware('block.after.9th');
             Route::delete('/team-objectives-manage/{team_objective}', [App\Http\Controllers\Appraisal\ObjectiveController::class, 'teamObjectivesDestroy'])->name('team.objectives.destroy')->middleware('block.after.9th');
+        });
+
+        Route::middleware('role:line_manager')->group(function () {
+            Route::get('/idp/team', [App\Http\Controllers\Appraisal\IdpController::class, 'lineManagerList'])->name('idp.team.list');
+            Route::get('/idp/team/{idp}/review', [App\Http\Controllers\Appraisal\IdpController::class, 'lineManagerReview'])->name('idp.team.review');
+            Route::post('/idp/team/{idp}/update', [App\Http\Controllers\Appraisal\IdpController::class, 'lineManagerUpdate'])->name('idp.team.update');
         });
 
         // Department Head
@@ -140,7 +144,18 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/override-form/{appraisal_id}', [App\Http\Controllers\Appraisal\AppraisalController::class, 'override'])->name('appraisals.override');
             Route::post('/appraisals/trigger-midterm/{user_id}', [App\Http\Controllers\Appraisal\AppraisalController::class, 'triggerMidterm'])->name('appraisals.trigger_midterm');
             Route::post('/appraisals/trigger-all-midterms', [App\Http\Controllers\Appraisal\AppraisalController::class, 'triggerAllMidterms'])->name('appraisals.trigger_all_midterms');
-            Route::post('/appraisals/trigger-final/{appraisal_id}', [App\Http\Controllers\Appraisal\AppraisalController::class, 'triggerFinal'])->name('appraisals.trigger_final');
+            Route::post('/appraisals/trigger-final/{user_id}', [App\Http\Controllers\Appraisal\AppraisalController::class, 'triggerFinal'])->name('appraisals.trigger_final');
+            Route::post('/appraisals/trigger-all-finals', [App\Http\Controllers\Appraisal\AppraisalController::class, 'triggerAllFinals'])->name('appraisals.trigger_all_finals');
+            
+            // Departmental Triggers
+            Route::post('/appraisals/trigger-dept-midterm/{id}', [App\Http\Controllers\Appraisal\AppraisalController::class, 'triggerDeptMidterm'])->name('appraisal.trigger.dept_midterm');
+            Route::post('/appraisals/trigger-all-dept-midterms', [App\Http\Controllers\Appraisal\AppraisalController::class, 'triggerAllDeptMidterms'])->name('appraisal.trigger.all_dept_midterms');
+            Route::post('/appraisals/trigger-dept-final/{id}', [App\Http\Controllers\Appraisal\AppraisalController::class, 'triggerDeptFinal'])->name('appraisal.trigger.dept_final');
+            Route::post('/appraisals/trigger-all-dept-finals', [App\Http\Controllers\Appraisal\AppraisalController::class, 'triggerAllDeptFinals'])->name('appraisal.trigger.all_dept_finals');
+
+            Route::get('/idp/hr-list', [App\Http\Controllers\Appraisal\IdpController::class, 'hrList'])->name('idp.hr.list');
+            Route::get('/idp/hr/{idp}/review', [App\Http\Controllers\Appraisal\IdpController::class, 'hrReview'])->name('idp.hr.review');
+            Route::post('/idp/hr/{idp}/update', [App\Http\Controllers\Appraisal\IdpController::class, 'hrUpdate'])->name('idp.hr.update');
         });
 
         // Line Manager Appraisal Workflows
@@ -154,6 +169,13 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/line-manager/final', [App\Http\Controllers\Appraisal\AppraisalController::class, 'finalList'])->name('appraisal.final.list');
             Route::get('/line-manager/final/conduct/{user_id}', [App\Http\Controllers\Appraisal\AppraisalController::class, 'conductFinal'])->name('appraisal.final.conduct');
             Route::post('/line-manager/final/store', [App\Http\Controllers\Appraisal\AppraisalController::class, 'storeFinal'])->name('appraisal.final.store');
+
+            // Departmental Review (Authority)
+            Route::get('/authority/departmental', [App\Http\Controllers\Appraisal\AppraisalController::class, 'departmentalObjectivesIndex'])->name('appraisal.dept.index');
+            Route::get('/authority/departmental/midterm/{id}', [App\Http\Controllers\Appraisal\AppraisalController::class, 'conductDeptMidterm'])->name('appraisal.dept.midterm');
+            Route::post('/authority/departmental/midterm/{id}', [App\Http\Controllers\Appraisal\AppraisalController::class, 'storeDeptMidterm'])->name('appraisal.dept.midterm.store');
+            Route::get('/authority/departmental/final/{id}', [App\Http\Controllers\Appraisal\AppraisalController::class, 'conductDeptFinal'])->name('appraisal.dept.final');
+            Route::post('/authority/departmental/final/{id}', [App\Http\Controllers\Appraisal\AppraisalController::class, 'storeDeptFinal'])->name('appraisal.dept.final.store');
         });
 
         // PIP management for HR / Super admin
@@ -180,13 +202,14 @@ Route::middleware(['auth'])->group(function () {
     // Super Admin only: show user table with disguised password column
     Route::middleware(['role:super_admin'])->group(function () {
         Route::get('/super-admin/users', [App\Http\Controllers\UserController::class, 'superAdminUserIndex'])->name('superadmin.users.index');
+        Route::delete('idps/{idp}', [App\Http\Controllers\Appraisal\IdpController::class, 'destroy'])->name('idps.destroy');
     });
 
     // HR Admin, Line Manager, Board, Admin and Super Admin full CRUD routes for objectives, appraisals, idps, audit logs
     Route::middleware(['role:hr_admin,super_admin,board,admin,line_manager'])->group(function () {
         Route::resource('objectives', App\Http\Controllers\Appraisal\ObjectiveController::class);
         Route::resource('appraisals', App\Http\Controllers\Appraisal\AppraisalController::class);
-        Route::resource('idps', App\Http\Controllers\Appraisal\IdpController::class);
+        Route::resource('idps', App\Http\Controllers\Appraisal\IdpController::class)->except(['destroy']);
         Route::resource('individual-objective-masters', App\Http\Controllers\Appraisal\IndividualObjectiveMasterController::class)->except(['show']);
         Route::resource('departmental-objective-masters', App\Http\Controllers\Appraisal\DepartmentalObjectiveMasterController::class)->except(['show']);
         Route::resource('departmental-objective-assignments', App\Http\Controllers\Appraisal\DepartmentalObjectiveAssignmentController::class)->parameters([
@@ -195,6 +218,8 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('individual-objective-assignments', App\Http\Controllers\Appraisal\IndividualObjectiveAssignmentController::class)->only(['index', 'show'])->parameters([
             'individual-objective-assignments' => 'individual_assignment'
         ]);
+        Route::post('individual-objective-assignments/{individual_assignment}/hr-comment', [App\Http\Controllers\Appraisal\IndividualObjectiveAssignmentController::class, 'saveHrComment'])
+            ->name('individual-objective-assignments.hr-comment');
         Route::post('individual-objective-masters/import-csv', [App\Http\Controllers\Appraisal\IndividualObjectiveMasterController::class, 'importCsv'])->name('individual-objective-masters.import-csv');
         Route::post('departmental-objective-masters/import-csv', [App\Http\Controllers\Appraisal\DepartmentalObjectiveMasterController::class, 'importCsv'])->name('departmental-objective-masters.import-csv');
         // IDP Milestones

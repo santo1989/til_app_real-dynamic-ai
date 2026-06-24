@@ -2,7 +2,7 @@
 
 @section('content')
     <div class="card card-responsive">
-        <div class="card-header bg-warning text-white d-flex flex-wrap justify-content-between align-items-center">
+         <div class="card-header bg-warning text-dark d-flex flex-wrap justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-bullseye"></i> All Objectives</h5>
             <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
                 <span class="auto-refresh-badge">Auto-refresh: 30s</span>

@@ -1,5 +1,5 @@
 @echo off
-cd /d "D:\NTG_App\www\til_app_real"
+cd /d "D:\NTG_App\www\til_app_real-dynamic-ai"
 
-start /B cmd /C "php artisan serve --host=192.168.100.231:2009"
+start /B cmd /C "php artisan serve --host=192.168.100.240:2009"
 start /B cmd /C "php artisan ser"

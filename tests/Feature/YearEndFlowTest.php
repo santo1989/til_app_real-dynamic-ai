@@ -23,8 +23,8 @@ class YearEndFlowTest extends TestCase
         // Create active financial year
         $fy = FinancialYear::create([
             'label' => 'FY2025',
-            'start_date' => now()->subMonths(6)->toDateString(),
-            'end_date' => now()->addMonths(6)->toDateString(),
+            'start_date' => now()->subMonths(13)->toDateString(),
+            'end_date' => now()->addMonths(1)->toDateString(),
             'is_active' => true,
         ]);
 

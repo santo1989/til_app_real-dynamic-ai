@@ -4,6 +4,10 @@
 
     $groups = [];
 
+    $isAuthority = \App\Models\DepartmentalObjectiveAssignment::where('certifying_authority_user_id', $user->id)
+        ->where('financial_year_id', \App\Models\FinancialYear::getActive()?->id)
+        ->exists();
+
     $groups[] = [
         'title' => null,
         'items' => [
@@ -22,26 +26,21 @@
             'items' => [
                 ['label' => 'My Objectives', 'icon' => 'fa-bullseye', 'route' => 'objectives.my', 'active' => request()->routeIs('objectives.my')],
                 ['label' => 'My IDP', 'icon' => 'fa-graduation-cap', 'route' => 'idp.index', 'active' => request()->routeIs('idp.*')],
-                ['label' => 'Midterm', 'icon' => 'fa-calendar-check', 'route' => 'appraisals.midterm', 'active' => request()->routeIs('appraisals.midterm*')],
                 ['label' => 'Year-End', 'icon' => 'fa-flag-checkered', 'route' => 'appraisals.yearend', 'active' => request()->routeIs('appraisals.yearend*')],
             ],
         ];
     }
 
-    if (in_array($role, ['line_manager', 'hr_admin', 'super_admin'], true)) {
+    if ($role === 'line_manager') {
         $groups[] = [
             'title' => 'Team',
             'items' => array_values(array_filter([
-                ['label' => 'Team Objectives', 'icon' => 'fa-users-cog', 'route' => 'objectives.team', 'active' => request()->routeIs('objectives.team')],
                 ['label' => 'Approvals', 'icon' => 'fa-check-double', 'route' => 'objectives.approvals', 'active' => request()->routeIs('objectives.approvals*')],
-                $role === 'line_manager'
-                    ? ['label' => 'Midterm Review', 'icon' => 'fa-calendar-check', 'route' => 'appraisal.midterm.list', 'active' => request()->routeIs('appraisal.midterm.*')]
-                    : null,
-                $role === 'line_manager'
-                    ? ['label' => 'Final Assessment', 'icon' => 'fa-flag-checkered', 'route' => 'appraisal.final.list', 'active' => request()->routeIs('appraisal.final.*')]
-                    : null,
-                $role === 'line_manager'
-                    ? ['label' => 'Dept. Objectives', 'icon' => 'fa-building', 'route' => 'team.objectives.index', 'active' => request()->routeIs('team.objectives.*')]
+                ['label' => 'Team IDPs', 'icon' => 'fa-graduation-cap', 'route' => 'idp.team.list', 'active' => request()->routeIs('idp.team.*')],
+                ['label' => 'Midterm Review', 'icon' => 'fa-calendar-check', 'route' => 'appraisal.midterm.list', 'active' => request()->routeIs('appraisal.midterm.*')],
+                ['label' => 'Final Assessment', 'icon' => 'fa-flag-checkered', 'route' => 'appraisal.final.list', 'active' => request()->routeIs('appraisal.final.*')],
+                ($isAuthority)
+                    ? ['label' => 'Dept. Obj Review', 'icon' => 'fa-building-user', 'route' => 'appraisal.dept.index', 'active' => request()->routeIs('appraisal.dept.*')]
                     : null,
             ])),
         ];
@@ -89,13 +88,18 @@
 
         $groups[] = [
             'title' => 'Operations',
-            'items' => [
+            'items' => array_values(array_filter([
                 ['label' => 'Set Dept/Team Objective', 'icon' => 'fa-bullseye', 'route' => 'departmental-objective-assignments.index', 'active' => request()->routeIs('departmental-objective-assignments.*')],
                 ['label' => 'Individual Objective List', 'icon' => 'fa-user-check', 'route' => 'individual-objective-assignments.index', 'active' => request()->routeIs('individual-objective-assignments.*')],
+                $isAuthority 
+                    ? ['label' => 'Dept. Obj Review', 'icon' => 'fa-building-user', 'route' => 'appraisal.dept.index', 'active' => request()->routeIs('appraisal.dept.*')]
+                    : null,
                 ['label' => 'Appraisals', 'icon' => 'fa-chart-line', 'route' => 'appraisals.index', 'active' => request()->routeIs('appraisals.index')],
-                ['label' => 'IDPs', 'icon' => 'fa-graduation-cap', 'route' => 'idps.index', 'active' => request()->routeIs('idps.index')],
+                $role === 'hr_admin'
+                    ? ['label' => 'IDPs', 'icon' => 'fa-graduation-cap', 'route' => 'idp.hr.list', 'active' => request()->routeIs('idp.hr.*')]
+                    : ['label' => 'IDPs', 'icon' => 'fa-graduation-cap', 'route' => 'idps.index', 'active' => request()->routeIs('idps.*')],
                 ['label' => 'PIPs', 'icon' => 'fa-triangle-exclamation', 'route' => 'pips.index', 'active' => request()->routeIs('pips.*')],
-            ],
+            ])),
         ];
 
         $groups[] = [

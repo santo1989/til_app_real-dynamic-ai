@@ -17,12 +17,12 @@
                 </div>
                 <div>
                     @if($isApproved)
-                        <div class="bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-4 py-2 shadow-sm d-flex align-items-center">
+                           <div class="bg-success text-dark border border-success border-opacity-25 rounded-pill px-4 py-2 shadow-sm d-flex align-items-center">
                             <i class="fas fa-lock me-2"></i>
                             <span class="small fw-bold uppercase">Record Verified & Locked</span>
                         </div>
                     @else
-                        <div class="badge bg-secondary bg-opacity-10 text-white px-4 py-2 rounded-pill border">
+                         <div class="badge bg-secondary text-dark px-4 py-2 rounded-pill border">
                             <i class="fas fa-edit me-2"></i> System: Edit Mode
                         </div>
                     @endif
@@ -38,7 +38,7 @@
         <div class="col-md-7">
             <div class="p-4 bg-white rounded-4 shadow-sm border h-100 transition-all hover-prime">
                 <div class="d-flex align-items-center mb-4">
-                    <div class="bg-success bg-opacity-10 text-success rounded-circle me-3 d-flex align-items-center justify-content-center fw-bold" style="width: 52px; height: 52px; font-size: 1.2rem;">
+                         <div class="bg-success text-white rounded-circle me-3 d-flex align-items-center justify-content-center fw-bold" style="width: 52px; height: 52px; font-size: 1.2rem;">
                         {{ substr($employee->name, 0, 1) }}
                     </div>
                     <div>
@@ -110,8 +110,8 @@
                     @endforeach
 
                     <!-- Section B: 70% -->
-                    <tr class="bg-success bg-opacity-10 border-bottom">
-                        <td colspan="{{ $isApproved ? 4 : 5 }}" class="py-3 px-4 fw-bold text-success">
+                     <tr class="bg-success border-bottom">
+                         <td colspan="{{ $isApproved ? 4 : 5 }}" class="py-3 px-4 fw-bold text-dark">
                             <i class="fas fa-user-check me-2"></i> Individual Performance Objectives (Target 70%)
                         </td>
                     </tr>
@@ -188,7 +188,7 @@
          x-cloak>
         <div class="custom-modal-overlay" @click="showConfirm = false"></div>
         <div class="custom-modal-content">
-            <div class="bg-success-soft text-success rounded-circle mb-4 mx-auto d-flex align-items-center justify-content-center" style="width: 80px; height: 80px; background: rgba(26, 107, 59, 0.1);">
+             <div class="bg-success text-white rounded-circle mb-4 mx-auto d-flex align-items-center justify-content-center" style="width: 80px; height: 80px; background: rgba(26, 107, 59, 0.1);">
                 <i class="fas fa-shield-check fa-2x"></i>
             </div>
             <h3 class="fw-bold text-dark mb-3">Authorize & Lock Record?</h3>
