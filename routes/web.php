@@ -19,6 +19,7 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
+Route::get('/dashboard/summary', [App\Http\Controllers\DashboardController::class, 'summary'])->middleware(['auth', 'role:super_admin'])->name('dashboard.summary');
 
 require __DIR__ . '/auth.php';
 
@@ -43,7 +44,9 @@ Route::middleware(['auth'])->group(function () {
             // Developer preview route for unified tabbed UI (non-invasive)
             Route::get('/employee/appraisal-tabs', function () {
                 $user = auth()->user();
-                $objectives = $user ? $user->objectives()->get() : collect();
+                $objectives = $user
+                    ? \App\Models\Objective::where('user_id', $user->id)->get()
+                    : collect();
                 return view('appraisal.employee.tabs', compact('objectives'));
             })->name('appraisal.employee.tabs');
         });
