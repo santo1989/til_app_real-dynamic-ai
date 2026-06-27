@@ -27,12 +27,13 @@
         $computedYearTotal += ($w * $ta / 100);
     }
     foreach ($individualObjectives as $o) {
-        $ta = (float) (old('scores.' . $o->id, $scores[$o->id] ?? 0) ?? 0);
+        $defaultValue = $o->final_score ?? $o->target_achieved ?? 0;
+        $ta = (float) (old('scores.' . $o->id, $defaultValue));
         $w = (float) ($o->weightage ?? 0);
         $computedYearTotal += ($w * $ta / 100);
     }
 
-    $displayRating = $computedYearTotal >= 95 ? 'Outstanding' : ($computedYearTotal >= 85 ? 'Very Good' : ($computedYearTotal >= 70 ? 'Good' : 'Below'));
+    $displayRating = $computedYearTotal >= 95 ? 'Outstanding' : ($computedYearTotal >= 85 ? 'Very Good' : ($computedYearTotal >= 60 ? 'Good' : 'Below'));
 @endphp
 
 <div class="yearend-scope">
@@ -126,7 +127,8 @@
                     @php
                         $w = (float) ($obj->weightage ?? 0);
                         // Pre-fill with manager's score if it exists, otherwise fall back to employee's target_achieved
-                        $yearTaValue = old('scores.' . $obj->id, $scores[$obj->id] ?? $obj->target_achieved);
+                        $defaultValue = $obj->final_score ?? $obj->target_achieved;
+                        $yearTaValue = old('scores.' . $obj->id, $defaultValue);
                         $yearTa = is_null($yearTaValue) ? null : (float) $yearTaValue;
                         $yearScore = $yearTa === null ? null : ($w * $yearTa / 100);
                         $midNote = $midtermNotes[$obj->id] ?? null;
@@ -190,8 +192,8 @@
                     <th>Development Action Plan</th>
                     <th>Resources Required</th>
                     <th>Deadline/ Timeline</th>
-                    <th>Attainment of Individual Development Plan: Yes / No</th>
-                    <th>If yes, whether there is visible demonstration of use of the learning</th>
+                    <th>Tracking Indicator</th>
+                    <th>Action points agreed during Midterm</th>
                     <th class="table-warning">HR Input</th>
                 </tr>
             </thead>
@@ -205,14 +207,8 @@
                         <td>{{ $idp->action_plan }}</td>
                         <td>{{ $idp->resources_required }}</td>
                         <td>{{ $idp->review_date ?? '' }}</td>
-                        <td>
-                            @if (is_null($idp->attainment))
-                                —
-                            @else
-                                {{ $idp->attainment ? 'Yes' : 'No' }}
-                            @endif
-                        </td>
-                        <td>{{ $idp->visible_demonstration }}</td>
+                        <td>{{ $idp->tracking_indicator }}</td>
+                        <td>{{ $idp->action_points_agreed }}</td>
                         <td>{{ $idp->hr_input }}</td>
                     </tr>
                 @empty
@@ -228,27 +224,27 @@
         <h3 class="section-title">Overall Comments</h3>
 
         <div class="mb-3">
-            <label class="form-label">Employee's Self Assessment Comment</label>
-            <textarea class="form-control" rows="3" readonly>{{ $yearEndAppraisal?->comments ?? 'No comments provided by employee.' }}</textarea>
+            <label class="form-label fw-bold">Employee's Self Assessment Comment</label>
+            <textarea class="form-control bg-light" rows="3" readonly>{{ $yearEndAppraisal?->comments ?? 'No comments provided by employee.' }}</textarea>
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Immediate Line Manager’s Comment</label>
+            <label class="form-label fw-bold">Immediate Line Manager’s Comment</label>
             @if ($mode === 'lm')
-                <textarea name="manager_comment" class="form-control" rows="3"
-                    @if($readOnly) disabled @endif>{{ old('manager_comment', $appraisal?->action_points) }}</textarea>
+                <textarea name="manager_comment" class="form-control {{ $readOnly ? 'bg-light' : '' }}" rows="3"
+                    @if($readOnly) readonly @endif>{{ old('manager_comment', $appraisal?->action_points) }}</textarea>
             @else
-                <textarea class="form-control" rows="3" readonly>{{ $appraisal?->action_points }}</textarea>
+                <textarea class="form-control bg-light" rows="3" readonly>{{ $appraisal?->action_points }}</textarea>
             @endif
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Line Manager’s Supervisor’s Comment</label>
+            <label class="form-label fw-bold">Line Manager’s Supervisor’s Comment</label>
             @if ($mode === 'hr')
-                <textarea name="hr_comment" class="form-control" rows="3"
-                    @if($readOnly || !empty(trim((string) ($appraisal?->supervisor_comments ?? '')))) disabled @endif>{{ old('hr_comment', $appraisal?->supervisor_comments) }}</textarea>
+                <textarea name="hr_comment" class="form-control {{ $readOnly || !empty(trim((string) ($appraisal?->supervisor_comments ?? ''))) ? 'bg-light' : '' }}" rows="3"
+                    @if($readOnly || !empty(trim((string) ($appraisal?->supervisor_comments ?? '')))) readonly @endif>{{ old('hr_comment', $appraisal?->supervisor_comments) }}</textarea>
             @else
-                <textarea class="form-control" rows="3" readonly>{{ $appraisal?->supervisor_comments }}</textarea>
+                <textarea class="form-control bg-light" rows="3" readonly>{{ $appraisal?->supervisor_comments }}</textarea>
             @endif
         </div>
     </div>
@@ -310,7 +306,7 @@
                 let rating = 'Below';
                 if (total >= 95) rating = 'Outstanding';
                 else if (total >= 85) rating = 'Very Good';
-                else if (total >= 70) rating = 'Good';
+                else if (total >= 60) rating = 'Good';
                 ratingEl.value = rating;
             }
         }

@@ -15,7 +15,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        // Run the auto-trigger command once a day at midnight.
+        $schedule->command('appraisals:auto-trigger')->daily();
     }
 
     /**

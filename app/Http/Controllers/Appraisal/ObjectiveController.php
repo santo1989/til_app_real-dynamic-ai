@@ -190,7 +190,7 @@ class ObjectiveController extends Controller
             ->where(function($q) use ($user) {
                 $q->whereNull('team_id')->orWhere('team_id', $user->team_id);
             })
-            ->with(['master', 'department'])
+            ->with(['master', 'department', 'certifyingAuthorityUser'])
             ->get();
 
         // 2. Existing Individual Objectives (The 70%)
@@ -201,7 +201,9 @@ class ObjectiveController extends Controller
 
         $masters = IndividualObjectiveMaster::where('is_active', true)->orderBy('title')->get();
 
-        return view('appraisal.objectives.my', compact('user', 'activeFy', 'deptObjectives', 'individualObjectives', 'masters'));
+        $isApproved = $individualObjectives->isNotEmpty() && $individualObjectives->every(fn($o) => $o->status === 'set');
+
+        return view('appraisal.objectives.my', compact('user', 'activeFy', 'deptObjectives', 'individualObjectives', 'masters', 'isApproved'));
     }
 
     public function myObjectiveForm()
@@ -224,12 +226,22 @@ class ObjectiveController extends Controller
                 ->unique()
                 ->values();
         }
-        $activeFY = FinancialYear::getActiveName();
+        $activeFYModel = FinancialYear::active();
+        $activeFY = $activeFYModel ? $activeFYModel->label : null;
         if (empty($activeFY)) {
             $objectives = collect();
+            $deptObjectives = collect();
             $fyLockedMessage = $this->missingActiveFinancialYearMessage();
-            return view('appraisal.objectives.my_form', compact('user', 'objectives', 'activeFY', 'fyLockedMessage', 'departments', 'designationOptions'));
+            return view('appraisal.objectives.my_form', compact('user', 'objectives', 'deptObjectives', 'activeFY', 'fyLockedMessage', 'departments', 'designationOptions'));
         }
+
+        $deptObjectives = \App\Models\DepartmentalObjectiveAssignment::where('financial_year_id', $activeFYModel->id)
+            ->where('department_id', $user->department_id)
+            ->where(function($q) use ($user) {
+                $q->whereNull('team_id')->orWhere('team_id', $user->team_id);
+            })
+            ->with(['master', 'department', 'certifyingAuthorityUser'])
+            ->get();
 
         $objectives = Objective::where('user_id', $user->id)
             ->where('financial_year', $activeFY)
@@ -237,7 +249,7 @@ class ObjectiveController extends Controller
             ->orderBy('id')
             ->get();
 
-        return view('appraisal.objectives.my_form', compact('user', 'objectives', 'activeFY', 'departments', 'designationOptions'));
+        return view('appraisal.objectives.my_form', compact('user', 'objectives', 'deptObjectives', 'activeFY', 'departments', 'designationOptions'));
     }
     public function submit(ObjectiveSettingRequest $request)
     {
@@ -276,9 +288,24 @@ class ObjectiveController extends Controller
             $creationAllowed = true; // fallback: allow
         }
 
+        // -------------------------------
+
         // If we couldn't determine an active financial year, stop early to avoid inserting NULL into DB
         if (empty($fyName)) {
-            return back()->withErrors(['financial_year' => $this->missingActiveFinancialYearMessage()])->withInput();
+            $msg = $this->missingActiveFinancialYearMessage();
+            if ($request->ajax()) return response()->json(['message' => $msg, 'errors' => ['financial_year' => [$msg]]], 422);
+            return back()->withErrors(['financial_year' => $msg])->withInput();
+        }
+
+        $existingApproved = Objective::where('user_id', $user->id)
+            ->where('financial_year', $fyName)
+            ->where('status', 'set')
+            ->exists();
+
+        if ($existingApproved) {
+            $msg = 'Your objectives have already been approved by your line manager and cannot be modified.';
+            if ($request->ajax()) return response()->json(['message' => $msg, 'errors' => ['objectives' => [$msg]]], 422);
+            return back()->withErrors(['objectives' => $msg])->withInput();
         }
 
         $existing = Objective::where('user_id', $user->id)
@@ -287,24 +314,39 @@ class ObjectiveController extends Controller
 
         // If there are existing objectives, only allow revisions up to the 9th-month cutoff
         if ($existing && !$revisionAllowed) {
-            return back()->withErrors(['objectives' => 'Objective revisions are locked after the 9th month of the financial year.'])->withInput();
+            $msg = 'Objective revisions are locked after the 9th month of the active financial year.';
+            if ($request->ajax()) return response()->json(['message' => $msg, 'errors' => ['objectives' => [$msg]]], 422);
+            return back()->withErrors(['objectives' => $msg])->withInput();
         }
 
-        // If no existing objectives, creation is only allowed within the first month of the FY
+        // If no existing objectives, creation is only allowed within the allowed window
         if (!$existing && !$creationAllowed) {
-            return back()->withErrors(['objectives' => 'Objective creation is only allowed during the first month of the financial year.'])->withInput();
+            $msg = 'Objective creation is only allowed during the first 6 to 9 months of the financial year. The allowed window has now passed.';
+            if ($request->ajax()) return response()->json(['message' => $msg, 'errors' => ['objectives' => [$msg]]], 422);
+            return back()->withErrors(['objectives' => $msg])->withInput();
         }
 
         // Employee submissions require approval from the line manager or HR admin.
         // Mark newly created objectives as 'pending' so approvers can review them.
         Objective::where('user_id', $user->id)->where('financial_year', $fyName)->delete();
         foreach ($data['objectives'] as $obj) {
+            $desc = trim($obj['description']);
+            
+            // Automatically save any custom objectives into the master table for future reuse
+            if (!empty($desc)) {
+                \App\Models\IndividualObjectiveMaster::firstOrCreate(
+                    ['title' => \Illuminate\Support\Str::upper($desc)],
+                    ['is_active' => true]
+                );
+            }
+
             Objective::create([
                 'user_id' => auth()->id(),
                 'type' => 'individual',
-                'description' => $obj['description'],
+                'description' => $desc,
                 'weightage' => (int) $obj['weightage'],
                 'target' => $obj['target'],
+                'timeline' => $obj['target'], // Save explicitly to timeline as well
                 'status' => 'draft',
                 'financial_year' => $fyName,
                 'created_by' => auth()->id(),
@@ -779,12 +821,23 @@ class ObjectiveController extends Controller
                 ->delete();
 
             foreach ($data['objectives'] as $obj) {
+                $desc = trim($obj['description']);
+                
+                // Automatically save any custom objectives into the master table for future reuse
+                if (!empty($desc)) {
+                    \App\Models\IndividualObjectiveMaster::firstOrCreate(
+                        ['title' => \Illuminate\Support\Str::upper($desc)],
+                        ['is_active' => true]
+                    );
+                }
+
                 Objective::create([
                     'user_id' => $employee->id,
                     'type' => 'individual',
-                    'description' => $obj['description'],
+                    'description' => $desc,
                     'weightage' => (int) $obj['weightage'],
                     'target' => $obj['target'] ?? null,
+                    'timeline' => $obj['target'] ?? null, // Save explicitly to timeline as well
                     'status' => $targetStatus,
                     'financial_year' => $fyName,
                     'created_by' => auth()->id(),

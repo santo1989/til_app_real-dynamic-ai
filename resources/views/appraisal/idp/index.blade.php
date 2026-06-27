@@ -106,15 +106,15 @@
                     <thead style="background-color: #f8fbff; color: #1a6b3b;">
                         <tr>
                             <th style="width: 50px;" class="text-center small">SL</th>
-                            <th style="width: 150px;" class="small"><i class="fas fa-star text-warning me-1"></i> Skill area</th>
-                            <th style="min-width: 300px;" class="small"><i class="fas fa-seedling text-success me-1"></i> Development Objective</th>
-                            <th style="min-width: 150px;" class="small">Expected Benefits</th>
-                            <th style="min-width: 200px;" class="small">Development Action Plan</th>
-                            <th style="min-width: 150px;" class="small">Resources Required</th>
-                            <th style="width: 130px;" class="small">Deadline/ Timeline</th>
-                            <th style="width: 150px;" class="text-center">Attainment of Individual Development Plan:</th>
-                            <th style="min-width: 300px;">If yes, whether there is visible demonstration of use of the learning</th>
-                            <th style="min-width: 150px;" class="small">HR Input</th>
+                            <th style="width: 150px;" class="small"><div class="text-uppercase text-muted fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px; margin-bottom: 2px;">Employee</div>Skill area</th>
+                            <th style="min-width: 300px;" class="small"><div class="text-uppercase text-muted fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px; margin-bottom: 2px;">Employee</div>Development Objective</th>
+                            <th style="min-width: 150px;" class="small"><div class="text-uppercase text-muted fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px; margin-bottom: 2px;">Employee</div>Expected Benefits</th>
+                            <th style="min-width: 200px;" class="small"><div class="text-uppercase text-muted fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px; margin-bottom: 2px;">Employee</div>Development Action Plan</th>
+                            <th style="min-width: 150px;" class="small"><div class="text-uppercase text-muted fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px; margin-bottom: 2px;">Employee</div>Resources Required</th>
+                            <th style="width: 130px;" class="small"><div class="text-uppercase text-muted fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px; margin-bottom: 2px;">Employee</div>Deadline/ Timeline</th>
+                            <th style="min-width: 150px;" class="small"><div class="text-uppercase text-muted fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px; margin-bottom: 2px;">Employee</div>Tracking Indicator</th>
+                            <th style="min-width: 200px;" class="small"><div class="text-uppercase text-success fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px; margin-bottom: 2px;">Manager</div>Action points agreed during Midterm</th>
+                            <th style="min-width: 150px;" class="small"><div class="text-uppercase text-primary fw-bold" style="font-size: 0.6rem; letter-spacing: 0.5px; margin-bottom: 2px;">HR</div>HR Input</th>
                             <th style="width: 50px;"></th>
                         </tr>
                     </thead>
@@ -122,13 +122,13 @@
                         <template x-for="(row, index) in rows" :key="index">
                             <tr>
                                 <td class="text-center fw-bold text-muted small" x-text="index + 1"></td>
-                                <td class="p-0">
-                                    <select x-model="row.skill_area" class="form-select border-0 shadow-none h-100 excel-input py-1" style="font-size: 0.75rem;">
-                                        <option value="">Select Skill</option>
+                                <td class="p-0 position-relative">
+                                    <input type="text" list="skill-area-options" x-model="row.skill_area" class="form-control border-0 shadow-none h-100 excel-input py-1 text-uppercase" style="font-size: 0.75rem;" placeholder="Type or select...">
+                                    <datalist id="skill-area-options">
                                         <template x-for="option in skillOptions" :key="option">
-                                            <option :value="option" x-text="option"></option>
+                                            <option :value="option"></option>
                                         </template>
-                                    </select>
+                                    </datalist>
                                 </td>
                                 <td class="p-0">
                                     <textarea x-model="row.description" class="form-control border-0 shadow-none excel-textarea py-1" style="font-size: 0.75rem;" rows="2" placeholder="Development objective..."></textarea>
@@ -145,12 +145,11 @@
                                 <td class="p-0">
                                     <input type="text" x-model="row.timeline" class="form-control border-0 shadow-none h-100 excel-input py-1" style="font-size: 0.75rem;" placeholder="e.g. Q4">
                                 </td>
-                                <td class="p-0 bg-light text-center small text-muted">
-                                    <span x-text="row.attainment == 1 ? 'YES' : (row.attainment == 0 ? 'NO' : '-')"></span>
+                                <td class="p-0">
+                                    <textarea x-model="row.tracking_indicator" class="form-control border-0 shadow-none excel-textarea py-1" style="font-size: 0.75rem;" rows="2" placeholder="Tracking Indicator..."></textarea>
                                 </td>
                                 <td class="p-0 bg-light">
-                                    <textarea x-model="row.visible_demonstration" class="form-control border-0 shadow-none excel-textarea py-1 bg-light text-muted" style="font-size: 0.7rem;" rows="2" readonly placeholder="Manager input..."></textarea>
-                                    <textarea x-model="row.visible_demonstration" class="form-control border-0 shadow-none excel-textarea py-1 bg-light text-muted" style="font-size: 0.7rem;" rows="2" readonly placeholder="If yes, whether there is visible demonstration of use of the learning..."></textarea>
+                                    <textarea x-model="row.action_points_agreed" class="form-control border-0 shadow-none excel-textarea py-1 bg-light text-muted" style="font-size: 0.7rem;" rows="2" readonly placeholder="Manager input during midterm..."></textarea>
                                 </td>
                                 <td class="p-0 bg-light">
                                     <textarea x-model="row.hr_input" class="form-control border-0 shadow-none excel-textarea py-1 bg-light text-muted" style="font-size: 0.7rem;" rows="2" readonly placeholder="HR Input..."></textarea>
@@ -195,8 +194,8 @@
                             <th style="min-width: 200px;">Development Action Plan</th>
                             <th style="min-width: 150px;">Resources Required</th>
                             <th style="width: 130px;">Deadline/ Timeline</th>
-                            <th style="width: 150px;" class="text-center">Attainment of Individual Development Plan:</th>
-                            <th style="min-width: 300px;">If yes, whether there is visible demonstration of use of the learning</th>
+                            <th style="min-width: 150px;">Tracking Indicator</th>
+                            <th style="min-width: 200px;">Action points agreed during Midterm</th>
                             <th style="width: 150px;">HR Input</th>
                             <th style="width: 100px;" class="text-center">Action</th>
                         </tr>
@@ -211,16 +210,8 @@
                             <td>{{ Str::limit($idp->action_plan, 50) }}</td>
                             <td>{{ Str::limit($idp->resources_required, 50) }}</td>
                             <td>{{ $idp->review_date ?: ($idp->timeline ?? 'N/A') }}</td>
-                            <td class="text-center fw-bold">
-                                @if(is_null($idp->attainment))
-                                    <span class="text-muted">-</span>
-                                @else
-                                    <span class="badge {{ $idp->attainment ? 'bg-success' : 'bg-danger' }} text-white">
-                                        {{ $idp->attainment ? 'YES' : 'NO' }}
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="text-muted small">{{ Str::limit($idp->visible_demonstration, 50) }}</td>
+                            <td class="text-muted small">{{ Str::limit($idp->tracking_indicator, 50) }}</td>
+                            <td class="text-muted small">{{ Str::limit($idp->action_points_agreed, 50) }}</td>
                             <td class="text-muted small">{{ Str::limit($idp->hr_input, 50) }}</td>
                             <td class="text-center">
                                 @if(!$idp->is_approved)
@@ -322,8 +313,8 @@ function idpSelfService() {
                 expected_benefits: '',
                 resources_required: '',
                 timeline: '',
-                attainment: null,
-                visible_demonstration: '',
+                tracking_indicator: '',
+                action_points_agreed: '',
                 hr_input: ''
             });
         },
@@ -344,12 +335,13 @@ function idpSelfService() {
             formData.append('user_id', '{{ auth()->id() }}');
             
             this.rows.forEach((row, index) => {
-                formData.append(`idps[${index}][skill_area]`, row.skill_area);
+                formData.append(`idps[${index}][skill_area]`, row.skill_area ? row.skill_area.toUpperCase() : '');
                 formData.append(`idps[${index}][description]`, row.description); 
                 formData.append(`idps[${index}][expected_benefits]`, row.expected_benefits);
                 formData.append(`idps[${index}][action_plan]`, row.action_plan);
                 formData.append(`idps[${index}][resources_required]`, row.resources_required);
                 formData.append(`idps[${index}][review_date]`, row.timeline); 
+                formData.append(`idps[${index}][tracking_indicator]`, row.tracking_indicator);
             });
 
             try {

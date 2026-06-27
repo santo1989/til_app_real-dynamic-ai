@@ -126,16 +126,13 @@
                         @else
                         <tr>
                             <td class="text-center fw-bold" x-text="index + 1 + {{ count($deptObjectives) }}"></td>
-                            <td class="p-0">
-                                <select x-model="row.description" class="form-select border-0 shadow-none h-100 py-3 px-4 excel-select" required>
-                                    <option value="">-- Choose Objective --</option>
+                            <td class="p-0 position-relative">
+                                <input type="text" list="objective-masters-list-mgr" x-model="row.description" class="form-control border-0 shadow-none h-100 py-3 px-4 excel-select" placeholder="Type or select an objective..." required autocomplete="off">
+                                <datalist id="objective-masters-list-mgr">
                                     @foreach($masters as $m)
-                                        <option value="{{ $m->title }}">{{ $m->title }}</option>
+                                        <option value="{{ $m->title }}"></option>
                                     @endforeach
-                                    <template x-if="row.description && !@json($masters->pluck('title')).includes(row.description)">
-                                        <option :value="row.description" x-text="row.description" selected></option>
-                                    </template>
-                                </select>
+                                </datalist>
                             </td>
                             <td class="p-0 text-center">
                                 <input type="text" x-model="row.target" class="form-control border-0 shadow-none h-100 py-3 text-center" placeholder="e.g. Q4">

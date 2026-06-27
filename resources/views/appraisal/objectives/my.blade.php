@@ -81,7 +81,7 @@
                          <tr class="bg-light text-muted opacity-75">
                             <td class="text-center small fw-bold">{{ $index + 1 }}</td>
                             <td class="px-4 py-3 h6 mb-0">{{ $dept->master->title }}</td>
-                            <td class="px-4 py-3 small fw-bold">{{ $dept->department->name ?? 'SYSTEM' }}</td>
+                            <td class="px-4 py-3 small fw-bold">{{ $dept->certifyingAuthorityUser->name ?? ($dept->department->name ?? 'SYSTEM') }}</td>
                             <td class="px-4 small italic">{{ $dept->timeline ?: 'N/A' }}</td>
                             <td class="text-center fw-bold">{{ $dept->weightage }}%</td>
                             <td></td>
@@ -95,18 +95,24 @@
                             </td>
                         </tr>
                         <template x-for="(row, index) in rows" :key="index">
+                            @if($isApproved)
+                            <tr class="bg-white">
+                                <td class="text-center fw-bold align-middle text-muted" x-text="index + 1"></td>
+                                <td class="px-4 py-3 fw-bold text-dark" colspan="2" x-text="row.description"></td>
+                                <td class="px-4 py-3 text-dark text-center fw-bold" x-text="row.target || 'N/A'"></td>
+                                <td class="text-center fw-bold text-dark align-middle" x-text="row.weightage + '%'"></td>
+                                <td class="text-center align-middle"></td>
+                            </tr>
+                            @else
                             <tr>
                                 <td class="text-center fw-bold align-middle" x-text="index + 1"></td>
-                                <td class="p-0">
-                                    <select x-model="row.description" class="form-select border-0 shadow-none h-100 excel-input" required>
-                                        <option value="">-- Search & Select Objective --</option>
+                                <td class="p-0 position-relative" colspan="2">
+                                    <input type="text" list="objective-masters-list" x-model="row.description" class="form-control border-0 shadow-none h-100 excel-input" placeholder="Type or select an objective..." required autocomplete="off">
+                                    <datalist id="objective-masters-list">
                                         @foreach($masters as $m)
-                                            <option value="{{ $m->title }}">{{ $m->title }}</option>
+                                            <option value="{{ $m->title }}"></option>
                                         @endforeach
-                                    </select>
-                                </td>
-                                <td class="p-0">
-                                    <input type="text" class="form-control border-0 shadow-none h-100 excel-input bg-light" disabled placeholder="N/A">
+                                    </datalist>
                                 </td>
                                 <td class="p-0">
                                     <input type="text" x-model="row.target" class="form-control border-0 shadow-none h-100 excel-input" placeholder="e.g. Q3 2026">
@@ -120,6 +126,7 @@
                                     </button>
                                 </td>
                             </tr>
+                            @endif
                         </template>
                     </tbody>
                     <tfoot>
@@ -144,14 +151,20 @@
 
         <!-- Submission Section -->
         <div class="d-flex justify-content-between align-items-center pb-5">
-            <button type="button" @click="addRow" class="btn btn-light border fw-bold px-4 shadow-sm" :disabled="totalIndivWeight >= 70">
-                <i class="fas fa-plus me-2 text-success"></i> Add Objective
-            </button>
+            <div>
+                @if(!$isApproved)
+                <button type="button" @click="addRow" class="btn btn-light border fw-bold px-4 shadow-sm" :disabled="totalIndivWeight >= 70">
+                    <i class="fas fa-plus me-2 text-success"></i> Add Objective
+                </button>
+                @endif
+            </div>
             <div class="d-flex gap-3">
-                <a href="{{ route('dashboard') }}" class="btn btn-light border px-5 fw-bold">Cancel</a>
+                <a href="{{ route('dashboard') }}" class="btn btn-light border px-5 fw-bold">Back to Dashboard</a>
+                @if(!$isApproved)
                 <button type="submit" class="btn btn-dark px-5 fw-bold shadow-sm" :disabled="totalIndivWeight !== 70">
                     <i class="fas fa-cloud-upload-alt me-2"></i> Submit Plan for Approval
                 </button>
+                @endif
             </div>
         </div>
     </form>
@@ -171,7 +184,7 @@
 @php
     $initialRows = $individualObjectives->count() > 0 
         ? $individualObjectives->map(function($o) {
-            return ['description' => $o->description, 'target' => $o->target, 'weightage' => $o->weightage];
+            return ['description' => strtoupper(trim($o->description)), 'target' => $o->timeline ?? $o->target, 'weightage' => $o->weightage];
           }) 
         : [['description' => '', 'target' => '', 'weightage' => 10]];
 @endphp
@@ -214,7 +227,7 @@ function objectiveSelfService() {
             this.rows.forEach((row, index) => {
                 formData.append(`objectives[${index}][type]`, 'individual');
                 formData.append(`objectives[${index}][description]`, row.description);
-                formData.append(`objectives[${index}][target]`, row.target);
+                formData.append(`objectives[${index}][target]`, row.target || '');
                 formData.append(`objectives[${index}][weightage]`, row.weightage);
                 formData.append(`objectives[${index}][financial_year]`, '{{ $activeFy->label }}');
             });
@@ -222,7 +235,10 @@ function objectiveSelfService() {
             fetch('{{ route('objectives.submit') }}', {
                 method: 'POST',
                 body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                headers: { 
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
             }).then(async r => {
                 if (r.ok) {
                     window.location.href = "{{ route('dashboard') }}";

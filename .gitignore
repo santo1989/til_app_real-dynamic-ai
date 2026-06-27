@@ -15,3 +15,5 @@ yarn-error.log
 .env
 til_app_real_2009_ip_server_start.bat
 Start_til_app_real.bat
+documentation/
+AGENTS.md

@@ -103,8 +103,8 @@
                                 <th style="min-width: 200px;" class="small">Development Action Plan</th>
                                 <th style="min-width: 150px;" class="small">Resources Required</th>
                                 <th style="width: 130px;" class="small">Deadline/ Timeline</th>
-                                <th style="width: 130px;" class="text-center small">Attainment</th>
-                                <th style="min-width: 300px;" class="small">Visible Demonstration</th>
+                                <th style="width: 130px;" class="small">Tracking Indicator</th>
+                                <th style="min-width: 300px;" class="small">Action points agreed during Midterm</th>
                                 <th style="min-width: 200px;" class="small bg-light">HR Input</th>
                                 <th style="width: 100px;" class="text-center small">Approval</th>
                             </tr>
@@ -113,12 +113,13 @@
                             <template x-for="(row, index) in rows" :key="index">
                                 <tr>
                                     <td class="text-center fw-bold text-muted small" x-text="index + 1"></td>
-                                    <td class="p-0">
-                                        <select x-model="row.skill_area" class="form-select border-0 shadow-none h-100 excel-input py-1" style="font-size: 0.75rem;">
+                                    <td class="p-0 position-relative">
+                                        <input type="text" list="skill-area-options" x-model="row.skill_area" class="form-control border-0 shadow-none h-100 excel-input py-1 text-uppercase" style="font-size: 0.75rem;" placeholder="Type or select...">
+                                        <datalist id="skill-area-options">
                                             <template x-for="option in skillOptions" :key="option">
-                                                <option :value="option" x-text="option" :selected="row.skill_area == option"></option>
+                                                <option :value="option"></option>
                                             </template>
-                                        </select>
+                                        </datalist>
                                     </td>
                                     <td class="p-0">
                                         <textarea x-model="row.description" class="form-control border-0 shadow-none excel-textarea py-1" style="font-size: 0.75rem;" rows="2"></textarea>
@@ -133,17 +134,13 @@
                                         <textarea x-model="row.resources_required" class="form-control border-0 shadow-none excel-textarea py-1" style="font-size: 0.75rem;" rows="2"></textarea>
                                     </td>
                                     <td class="p-0">
-                                        <input type="date" x-model="row.timeline" class="form-control border-0 shadow-none h-100 excel-input py-1" style="font-size: 0.75rem;">
-                                    </td>
-                                    <td class="p-1">
-                                        <select x-model="row.attainment" class="form-select form-select-sm border-0 shadow-none" style="font-size: 0.7rem;">
-                                            <option value="">Unset</option>
-                                            <option value="1">YES</option>
-                                            <option value="0">NO</option>
-                                        </select>
+                                        <input type="text" x-model="row.timeline" class="form-control border-0 shadow-none h-100 excel-input py-1" style="font-size: 0.75rem;" placeholder="e.g. Q4">
                                     </td>
                                     <td class="p-0">
-                                        <textarea x-model="row.visible_demonstration" class="form-control border-0 shadow-none excel-textarea py-1" style="font-size: 0.75rem;" rows="2"></textarea>
+                                        <textarea x-model="row.tracking_indicator" class="form-control border-0 shadow-none excel-textarea py-1" style="font-size: 0.75rem;" rows="2"></textarea>
+                                    </td>
+                                    <td class="p-0">
+                                        <textarea x-model="row.action_points_agreed" class="form-control border-0 shadow-none excel-textarea py-1" style="font-size: 0.75rem;" rows="2"></textarea>
                                     </td>
                                     <td class="p-0 bg-light">
                                         <textarea x-model="row.hr_input" class="form-control border-0 shadow-none excel-textarea py-1 bg-light fw-medium" style="font-size: 0.75rem; color: #1e40af;" rows="2" placeholder="Enter HR feedback..."></textarea>
@@ -183,6 +180,7 @@
                             body: JSON.stringify({
                                 idps: this.rows.map(row => ({
                                     ...row,
+                                    skill_area: row.skill_area ? row.skill_area.toUpperCase() : '',
                                     review_date: row.timeline
                                 }))
                             })

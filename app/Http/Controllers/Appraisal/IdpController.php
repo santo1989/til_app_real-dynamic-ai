@@ -151,9 +151,9 @@ class IdpController extends Controller
                 'expected_benefits' => $i->expected_benefits,
                 'action_plan' => $i->action_plan,
                 'resources_required' => $i->resources_required,
-                'timeline' => $i->review_date ? \Carbon\Carbon::parse($i->review_date)->format('Y-m-d') : ($i->timeline ?? ''),
-                'attainment' => is_null($i->attainment) ? '' : ($i->attainment ? '1' : '0'),
-                'visible_demonstration' => $i->visible_demonstration,
+                'timeline' => $i->review_date ?? ($i->timeline ?? ''),
+                'tracking_indicator' => $i->tracking_indicator,
+                'action_points_agreed' => $i->action_points_agreed,
                 'hr_input' => $i->hr_input,
                 'is_approved' => (bool)$i->is_approved
             ];
@@ -185,21 +185,15 @@ class IdpController extends Controller
             'idps.*.expected_benefits' => 'nullable|string',
             'idps.*.action_plan' => 'nullable|string',
             'idps.*.resources_required' => 'nullable|string',
-            'idps.*.review_date' => 'nullable|date_format:Y-m-d',
-            'idps.*.attainment' => 'nullable|string',
-            'idps.*.visible_demonstration' => 'nullable|string',
+            'idps.*.review_date' => 'nullable|string',
+            'idps.*.tracking_indicator' => 'nullable|string',
+            'idps.*.action_points_agreed' => 'nullable|string',
             'idps.*.is_approved' => 'nullable|boolean'
         ]);
 
         foreach ($validated['idps'] as $row) {
             $existing = Idp::findOrFail($row['id']);
             $isRowApproved = isset($row['is_approved']) ? (bool)$row['is_approved'] : false;
-            
-            // Cast attainment from string to nullable boolean
-            $attainment = null;
-            if (isset($row['attainment']) && $row['attainment'] !== '') {
-                $attainment = (bool)$row['attainment'];
-            }
 
             $updateData = [
                 'skill_area' => $this->normalizeText($row['skill_area'] ?? null),
@@ -208,8 +202,8 @@ class IdpController extends Controller
                 'action_plan' => $this->normalizeText($row['action_plan'] ?? null),
                 'resources_required' => $this->normalizeText($row['resources_required'] ?? null),
                 'review_date' => (!empty($row['review_date'])) ? $row['review_date'] : null,
-                'attainment' => $attainment,
-                'visible_demonstration' => $this->normalizeText($row['visible_demonstration'] ?? null),
+                'tracking_indicator' => $this->normalizeText($row['tracking_indicator'] ?? null),
+                'action_points_agreed' => $this->normalizeText($row['action_points_agreed'] ?? null),
                 'is_approved' => $isRowApproved,
             ];
 
@@ -321,9 +315,9 @@ class IdpController extends Controller
                 'expected_benefits' => $i->expected_benefits,
                 'action_plan' => $i->action_plan,
                 'resources_required' => $i->resources_required,
-                'timeline' => $i->review_date ? \Carbon\Carbon::parse($i->review_date)->format('Y-m-d') : ($i->timeline ?? ''),
-                'attainment' => is_null($i->attainment) ? '' : ($i->attainment ? '1' : '0'),
-                'visible_demonstration' => $i->visible_demonstration,
+                'timeline' => $i->review_date ?? ($i->timeline ?? ''),
+                'tracking_indicator' => $i->tracking_indicator,
+                'action_points_agreed' => $i->action_points_agreed,
                 'hr_input' => $i->hr_input,
                 'is_approved' => (bool)$i->is_approved
             ];
@@ -354,20 +348,15 @@ class IdpController extends Controller
             'idps.*.expected_benefits' => 'nullable|string',
             'idps.*.action_plan' => 'nullable|string',
             'idps.*.resources_required' => 'nullable|string',
-            'idps.*.review_date' => 'nullable|date_format:Y-m-d',
-            'idps.*.attainment' => 'nullable|string',
-            'idps.*.visible_demonstration' => 'nullable|string',
+            'idps.*.review_date' => 'nullable|string',
+            'idps.*.tracking_indicator' => 'nullable|string',
+            'idps.*.action_points_agreed' => 'nullable|string',
             'idps.*.hr_input' => 'nullable|string',
             'idps.*.is_approved' => 'nullable|boolean'
         ]);
 
         foreach ($validated['idps'] as $row) {
             $existing = Idp::findOrFail($row['id']);
-            
-            $attainment = null;
-            if (isset($row['attainment']) && $row['attainment'] !== '') {
-                $attainment = (bool)$row['attainment'];
-            }
 
             $updateData = [
                 'skill_area' => $this->normalizeText($row['skill_area'] ?? null),
@@ -376,8 +365,8 @@ class IdpController extends Controller
                 'action_plan' => $this->normalizeText($row['action_plan'] ?? null),
                 'resources_required' => $this->normalizeText($row['resources_required'] ?? null),
                 'review_date' => (!empty($row['review_date'])) ? $row['review_date'] : null,
-                'attainment' => $attainment,
-                'visible_demonstration' => $this->normalizeText($row['visible_demonstration'] ?? null),
+                'tracking_indicator' => $this->normalizeText($row['tracking_indicator'] ?? null),
+                'action_points_agreed' => $this->normalizeText($row['action_points_agreed'] ?? null),
                 'hr_input' => $this->normalizeText($row['hr_input'] ?? null),
                 'is_approved' => isset($row['is_approved']) ? (bool)$row['is_approved'] : $existing->is_approved,
             ];
@@ -431,12 +420,18 @@ class IdpController extends Controller
         // Ensure revisions are allowed for the active financial year
         $fy = \App\Models\FinancialYear::active();
         if ($fy && !$fy->isRevisionAllowed()) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['message' => 'IDP revisions are closed for the active financial year.'], 403);
+            }
             return redirect()->back()->with('error', 'IDP revisions are closed for the active financial year.');
         }
 
         $user = auth()->user();
         $activeFY = FinancialYear::getActiveName();
         if (Schema::hasColumn('idps', 'financial_year') && empty($activeFY)) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['message' => 'No active financial year found. IDP setting is locked until Admin, HR Admin, or Board activates a financial year.'], 403);
+            }
             return back()->withErrors(['financial_year' => 'No active financial year found. IDP setting is locked until Admin, HR Admin, or Board activates a financial year.'])->withInput();
         }
 
@@ -449,6 +444,7 @@ class IdpController extends Controller
             'idps.*.action_plan' => 'nullable|string',
             'idps.*.resources_required' => 'nullable|string',
             'idps.*.review_date' => 'nullable|string',
+            'idps.*.tracking_indicator' => 'nullable|string',
             'description' => 'nullable|string',
             'review_date' => 'nullable|string',
             'progress_till_dec' => 'nullable|string',
@@ -526,6 +522,7 @@ class IdpController extends Controller
                     'action_plan' => $this->normalizeText($row['action_plan'] ?? null),
                     'resources_required' => $this->normalizeText($row['resources_required'] ?? null),
                     'review_date' => $row['review_date'] ?? null,
+                    'tracking_indicator' => $this->normalizeText($row['tracking_indicator'] ?? null),
                     'status' => 'open',
                 ];
                 if (Schema::hasColumn('idps', 'financial_year')) {
@@ -559,9 +556,15 @@ class IdpController extends Controller
             }
 
             if ($created === 0) {
+                if ($request->wantsJson() || $request->ajax()) {
+                    return response()->json(['message' => 'Please fill at least one IDP row before saving.'], 422);
+                }
                 return back()->withErrors(['idps' => 'Please fill at least one IDP row before saving.'])->withInput();
             }
 
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['message' => 'IDP entries saved successfully.']);
+            }
             return redirect()->route('idp.index')->with('success', 'IDP entries saved successfully.');
         }
 
@@ -687,7 +690,8 @@ class IdpController extends Controller
             'review_date' => 'required|date',
             'progress_till_dec' => 'nullable|string',
             'revised_description' => 'nullable|string',
-            'accomplishment' => 'nullable|string',
+            'idps.*.tracking_indicator' => 'nullable|string',
+            'idps.*.action_points_agreed' => 'nullable|string',
             'status' => 'nullable|string',
             'signed_by_employee' => 'nullable|boolean',
             'employee_signed_by_name' => 'nullable|string',
@@ -700,7 +704,7 @@ class IdpController extends Controller
         ]);
         // Record revision history: capture fields that changed
         // Note: 'status' is not a column on the idps table in current schema — exclude it
-        $fields = ['user_id', 'skill_area', 'description', 'expected_benefits', 'action_plan', 'resources_required', 'review_date', 'progress_till_dec', 'revised_description', 'accomplishment'];
+        $fields = ['user_id', 'skill_area', 'description', 'expected_benefits', 'action_plan', 'resources_required', 'review_date', 'tracking_indicator', 'action_points_agreed', 'progress_till_dec', 'revised_description', 'accomplishment'];
         $original = $idp->only($fields);
         $new = $this->normalizeIdpTextFields($request->only($fields));
 

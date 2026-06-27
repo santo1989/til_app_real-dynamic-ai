@@ -51,6 +51,7 @@ class FinancialYearSeeder extends Seeder
             $revisionCutoff = $startDate->copy()->addMonths(9)->endOfDay();
 
             FinancialYear::create([
+                'label' => $year['name'],
                 'name' => $year['name'],
                 'start_date' => $year['start_date'],
                 'end_date' => $year['end_date'],

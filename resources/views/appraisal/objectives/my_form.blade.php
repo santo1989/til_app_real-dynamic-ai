@@ -2,9 +2,9 @@
 
 @section('content')
     @php
-        $departmental = $objectives->where('type', 'departmental')->values();
+        $departmental = $deptObjectives;
         $individual = $objectives->where('type', 'individual')->values();
-        $totalWeight = (int) $objectives->sum('weightage');
+        $totalWeight = (int) ($departmental->sum('weightage') + $individual->sum('weightage'));
 
         $joiningDate = !empty($user->date_of_joining) ? \Carbon\Carbon::parse($user->date_of_joining) : null;
         $today = now();
@@ -197,10 +197,10 @@
                             @forelse ($departmental as $index => $obj)
                                 <tr>
                                     <td>{{ $index + 1 }}</td>
-                                    <td>{{ $obj->description }}</td>
+                                    <td>{{ $obj->master->title ?? $obj->description }}</td>
                                     <td>{{ $obj->timeline ?? $obj->target }}</td>
                                     <td>{{ $obj->weightage }}%</td>
-                                    <td>{{ $obj->certifying_authority ?? ($obj->department->name ?? 'N/A') }}</td>
+                                    <td>{{ $obj->certifyingAuthorityUser->name ?? ($obj->department->name ?? 'N/A') }}</td>
                                 </tr>
                             @empty
                                 <tr>

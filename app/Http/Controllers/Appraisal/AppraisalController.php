@@ -77,12 +77,8 @@ class AppraisalController extends Controller
                 }
             }
 
-            // Final Year Logic: Ready if midterm completed
-            if ($midTermApp && in_array($midTermApp->status, [
-                Appraisal::STATUS_MIDTERM_COMPLETED,
-                Appraisal::STATUS_READY_FOR_FINAL,
-                Appraisal::STATUS_FINAL_COMPLETED
-            ])) {
+            // Final Year Logic: Ready if midterm triggered
+            if ($midTermApp) {
                 $finalYearList[] = [
                     'user' => $emp,
                     'status' => $midTermApp->status
@@ -102,8 +98,8 @@ class AppraisalController extends Controller
             // Midterm: show all
             $deptMidtermList[] = $asgn;
             
-            // Final: show all where midterm is completed
-            if ($asgn->midterm_status === 'completed') {
+            // Final: show all where midterm is triggered
+            if ($asgn->midterm_status !== null) {
                 $deptFinalList[] = $asgn;
             }
         }
@@ -169,7 +165,7 @@ class AppraisalController extends Controller
         if (!$activeFY) return back()->withErrors(['message' => 'No active financial year.']);
 
         $count = \App\Models\DepartmentalObjectiveAssignment::where('financial_year_id', $activeFY->id)
-            ->where('midterm_status', 'completed')
+            ->whereNotNull('midterm_status')
             ->whereNull('final_status')
             ->update(['final_status' => 'triggered']);
 
@@ -347,7 +343,7 @@ class AppraisalController extends Controller
         $finalScores = [];
 
         $objectives = \App\Models\Objective::where('user_id', $appraisal->user_id)
-            ->where('financial_year', \App\Models\FinancialYear::getActiveName())
+            ->where('financial_year', $appraisal->financial_year)
             ->where('type', 'individual')
             ->get();
 
@@ -355,9 +351,14 @@ class AppraisalController extends Controller
             $ta = $submittedScores[$objective->id] ?? 0;
             $finalScores[$objective->id] = $ta;
             $totalWeightedScore += ($objective->weightage * $ta / 100);
+            
+            // Persist the final score directly on the Objective model
+            $objective->update(['final_score' => $ta]);
         }
 
-        $deptObjectives = \App\Models\DepartmentalObjectiveAssignment::where('financial_year_id', \App\Models\FinancialYear::getActive()?->id)
+        $fyModel = \App\Models\FinancialYear::where('label', $appraisal->financial_year)->first();
+        
+        $deptObjectives = \App\Models\DepartmentalObjectiveAssignment::where('financial_year_id', $fyModel?->id)
             ->where('department_id', $appraisal->user->department_id)
             ->where(function($q) use ($appraisal) {
                 $q->whereNull('team_id')->orWhere('team_id', $appraisal->user->team_id);
@@ -375,7 +376,7 @@ class AppraisalController extends Controller
         $rating = 'below';
         if ($totalWeightedScore >= 95) $rating = 'outstanding';
         elseif ($totalWeightedScore >= 85) $rating = 'good'; // "Very Good" in view, "good" in enum
-        elseif ($totalWeightedScore >= 70) $rating = 'average'; // "Good" in view, "average" in enum
+        elseif ($totalWeightedScore >= 60) $rating = 'average'; // "Good" in view, "average" in enum
 
         $appraisal->update([
             'ratings' => array_merge($appraisal->ratings ?? [], ['scores' => $finalScores]),
@@ -417,7 +418,7 @@ class AppraisalController extends Controller
         $appraisal = Appraisal::where('user_id', $user_id)
             ->where('type', 'midterm')
             ->where('financial_year', $activeFY)
-            ->where('status', Appraisal::STATUS_MIDTERM_COMPLETED)
+            ->whereIn('status', [Appraisal::STATUS_MIDTERM_TRIGGERED, Appraisal::STATUS_IN_PROGRESS, Appraisal::STATUS_MIDTERM_COMPLETED])
             ->firstOrFail();
 
         $appraisal->update(['status' => Appraisal::STATUS_READY_FOR_FINAL]);
@@ -434,7 +435,7 @@ class AppraisalController extends Controller
 
         $count = Appraisal::where('type', 'midterm')
             ->where('financial_year', $activeFY)
-            ->where('status', Appraisal::STATUS_MIDTERM_COMPLETED)
+            ->whereIn('status', [Appraisal::STATUS_MIDTERM_TRIGGERED, Appraisal::STATUS_IN_PROGRESS, Appraisal::STATUS_MIDTERM_COMPLETED])
             ->update(['status' => Appraisal::STATUS_READY_FOR_FINAL]);
 
         if ($count > 0) {

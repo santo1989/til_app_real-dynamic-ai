@@ -255,7 +255,7 @@
                                             @endif
                                         </td>
                                         <td class="text-end pe-3">
-                                            @if($item['status'] === \App\Models\Appraisal::STATUS_MIDTERM_COMPLETED)
+                                            @if(in_array($item['status'], [\App\Models\Appraisal::STATUS_MIDTERM_TRIGGERED, \App\Models\Appraisal::STATUS_IN_PROGRESS, \App\Models\Appraisal::STATUS_MIDTERM_COMPLETED]))
                                             <form action="{{ route('appraisals.trigger_final', $item['user']->id) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 <button class="btn btn-sm btn-outline-success rounded-pill px-3">Trigger</button>

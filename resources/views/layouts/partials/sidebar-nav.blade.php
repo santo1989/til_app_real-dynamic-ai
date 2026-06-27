@@ -81,7 +81,7 @@
             'items' => [
                 ['label' => 'Individual Objectives', 'icon' => 'fa-list-check', 'route' => 'individual-objective-masters.index', 'active' => request()->routeIs('individual-objective-masters.*')],
                 ['label' => 'Dept/Team Objectives', 'icon' => 'fa-diagram-project', 'route' => 'departmental-objective-masters.index', 'active' => request()->routeIs('departmental-objective-masters.*')],
-                ['label' => 'IDP Skill Mapping', 'icon' => 'fa-sitemap', 'route' => 'idp-development-objectives.index', 'active' => request()->routeIs('idp-development-objectives.*')],
+                ['label' => 'IDP Skill Area', 'icon' => 'fa-sitemap', 'route' => 'idp-development-objectives.index', 'active' => request()->routeIs('idp-development-objectives.*')],
                 ['label' => 'Financial Years', 'icon' => 'fa-calendar-alt', 'route' => 'financial-years.index', 'active' => request()->routeIs('financial-years.*')],
             ],
         ];

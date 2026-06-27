@@ -13,5 +13,6 @@ class DepartmentSeeder extends Seeder
         Department::create(['name' => 'Manufacturing']);
         Department::create(['name' => 'Sales']);
         Department::create(['name' => 'HR']);
+        Department::create(['name' => 'IT']);
     }
 }

@@ -84,7 +84,7 @@
                         <td class="px-4 py-3 text-end">
                             <a href="{{ route('objectives.show_set_for_user', $employee->id) }}" class="btn btn-sm px-3 rounded-pill fw-bold transition-all shadow-sm-hover {{ $employee->performance_status === 'approved' ? 'btn-outline-success border-success' : 'text-white' }}" style="{{ $employee->performance_status === 'approved' ? '' : 'background-color: #1a6b3b;' }}">
                                 @if($employee->performance_status === 'not_started')
-                                    <i class="fas fa-plus-circle me-1"></i> Initiate Plan
+                                    <i class="fas fa-plus-circle me-1"></i> Set Objectives
                                 @elseif($employee->performance_status === 'approved')
                                     <i class="fas fa-eye me-1"></i> View Plan
                                 @else

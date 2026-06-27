@@ -3,14 +3,33 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Idp;
-use App\Models\User;
+use App\Models\IdpDevelopmentObjective;
 
 class IdpSeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     *
+     * @return void
+     */
     public function run()
     {
-        $emp = User::where('employee_id', 'E001')->first();
-        Idp::create(['user_id' => $emp->id, 'description' => 'Training on new CNC machines', 'review_date' => now()->addMonths(6)]);
+        $skillAreas = [
+            'Excel',
+            'ERP',
+            'Lean Manufacturing',
+            'Machine Operation',
+            'Quality Control Procedures',
+        ];
+
+        foreach ($skillAreas as $area) {
+            IdpDevelopmentObjective::updateOrCreate(
+                ['skill_area' => $area],
+                [
+                    'is_active' => true,
+                    'created_by' => null,
+                ]
+            );
+        }
     }
 }
